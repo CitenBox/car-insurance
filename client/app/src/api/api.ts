@@ -1,11 +1,24 @@
+import { Platform } from 'react-native';
 import axios from 'axios';
- // כאן יש לשים את הכתובת של השרת שלך
- // לדוגמה: 'http://localhost:3000/api/auth' או כתובת IP של המחשב שלך ברשת המקומית
- // אם אתה מריץ על אמולטור של אנדרואיד, השתמש ב-
-const API_BASE_URL = 'http://10.0.0.6:3000/api/auth';
 
-// יצירת מופע של axios עם הגדרות בסיסיות
-// לשימוש בכל הבקשות לשרת
+// כתובת ה-IP של המחשב שלכם ברשת המקומית
+const LOCAL_IP = '192.168.1.5'; // החליפו לכתובת שלכם
+
+// זיהוי פלטפורמה כדי לבחור את ה-Base URL המתאים
+let API_BASE_URL = '';
+
+if (Platform.OS === 'android') {
+  // Android Emulator
+  API_BASE_URL = 'http://10.0.2.2:3000/api/auth';
+} else if (Platform.OS === 'ios') {
+  // iOS Simulator
+  API_BASE_URL = 'http://localhost:3000/api/auth';
+} else {
+  // מכשיר פיזי (iOS או Android)
+  API_BASE_URL = `http://${LOCAL_IP}:3000/api/auth`;
+}
+
+// יצירת מופע axios עם הגדרות בסיסיות
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -13,9 +26,7 @@ const api = axios.create({
   },
 });
 
-// פונקציה להגדרת טוקן האותנטיקציה בכותרות של כל הבקשות
-// משתמשים בה אחרי הלוגין או הלוגאוט
-// כדי להוסיף או להסיר את הטוקן מהכותרות
+// פונקציה להוספה או הסרה של טוקן באותנטיקציה
 export const setAuthToken = (token: string | null) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;

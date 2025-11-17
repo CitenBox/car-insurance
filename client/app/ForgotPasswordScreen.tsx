@@ -8,18 +8,16 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
-    // פונקציה לטיפול באיפוס הסיסמה
-    // שולחת בקשה לשרת ליצירת טוקן איפוס
-    // ואז שולחת מייל עם הקישור לאיפוס דרך Formspree
-    // מציגה התראה למשתמש על הצלחה או כישלון
+  // פונקציה לטיפול באיפוס הסיסמה
+  // שולחת בקשה לשרת ליצירת טוקן איפוס
+  // ואז שולחת מייל עם הקישור לאיפוס דרך Formspree
+  // מציגה התראה למשתמש על הצלחה או כישלון
   const handleReset = async () => {
     if (!email) {
       Alert.alert("Error", "Please enter your email");
       return;
     }
-    // שליחת הבקשה לשרת
-    // לקבלת טוקן איפוס סיסמה
-    // ואז שליחת המייל דרך Formspree
+
     try {
       // שליחת בקשה לשרת שלך ליצירת טוקן איפוס סיסמה
       const res = await api.post('/forgot-password', { email });

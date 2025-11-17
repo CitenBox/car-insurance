@@ -11,7 +11,6 @@ import { IUser } from './src/types/User';
 // ומעדכן את מצב האותנטיקציה במידה והלוגין הצליח    
 // מציג התראה במקרה של כישלון
 // ומנווט את המשתמש למסך הפרופיל אחרי לוגין מוצלח
-
 export default function Login() {
   const { login } = useContext(AuthContext);
   const router = useRouter();

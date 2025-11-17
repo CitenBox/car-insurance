@@ -8,20 +8,18 @@ export default function Profile() {
   const router = useRouter();
   const { user, login, logout } = useContext(AuthContext);
 
-    // מציג את פרטי הפרופיל של המשתמש
-    // מאפשר עדכון של שם משתמש, שם מלא, מחלקה וסיסמה
-    // שולח את העדכונים לשרת ומעדכן את הקשר האותנטיקציה
-    // כולל אפשרות להתנתק מהאפליקציה
-
+  // מציג את פרטי הפרופיל של המשתמש
+  // מאפשר עדכון של שם משתמש, שם מלא, מחלקה וסיסמה
+  // שולח את העדכונים לשרת ומעדכן את הקשר האותנטיקציה
+  // כולל אפשרות להתנתק מהאפליקציה
   const [username, setUsername] = useState(user?.username || '');
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [department, setDepartment] = useState(user?.department || '');
   const [password, setPassword] = useState('');
 
-    // פונקציה לטיפול בעדכון פרופיל
-    // שולחת את הנתונים המעודכנים לשרת
-    // ומעדכנת את הקשר האותנטיקציה עם המידע החדש
-
+  // פונקציה לטיפול בעדכון פרופיל
+  // שולחת את הנתונים המעודכנים לשרת
+  // ומעדכנת את הקשר האותנטיקציה עם המידע החדש
   const handleUpdate = async () => {
     try {
       const res = await api.put('/profile', { username, fullName, department, password });
@@ -31,6 +29,7 @@ export default function Profile() {
       Alert.alert('Error', err.response?.data?.message || err.message);
     }
   };
+
   // פונקציה לטיפול בהתנתקות
   // קוראת לפונקציית ה־logout מההקשר
   // ומנווטת את המשתמש למסך הלוגין

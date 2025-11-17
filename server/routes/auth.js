@@ -178,6 +178,12 @@ router.get('/all', protect, adminOnly, async (req, res) => {
 // user.role בודק אם המשתמש הוא אדמין
 router.put('/role/:id', protect, adminOnly, async (req, res) => {
   const { role } = req.body;
+
+  // בדיקה שה-role תקין
+  if (!['user', 'admin'].includes(role)) {
+    return res.status(400).json({ message: 'Invalid role value' });
+  }
+
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ message: 'User not found' });
 

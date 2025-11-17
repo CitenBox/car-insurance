@@ -16,11 +16,6 @@ export default function SignupScreen() {
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('');
 
-    // פונקציה לטיפול בהרשמה
-    // שולחת בקשה לשרת עם פרטי המשתמש
-    // ומנווטת למסך הלוגין במקרה של הצלחה
-    // מציגה התראה במקרה של כישלון
-
   const handleSignup = async () => {
     try {
       await api.post('/signup', { username, email, password, fullName, department });

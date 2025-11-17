@@ -4,7 +4,6 @@ import { IUser } from '../types/User';
 import api, { setAuthToken } from '../api/api';
 
 // הגדרת סוגי ההקשר
-
 interface AuthContextProps {
   user: IUser | null;
   login: (token: string, user: IUser) => Promise<void>;
@@ -24,7 +23,6 @@ export const AuthContext = createContext<AuthContextProps>({
 // וטוקן האותנטיקציה
 // מספק פונקציות ל־login ו־logout
 // ושומר את המידע ב־AsyncStorage
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<IUser | null>(null);
 
@@ -43,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     loadUser();
   }, []);
+
   // פונקציה לטיפול בלוגין
   // מקבלת טוקן ומידע משתמש
   // שומרת אותם ב־AsyncStorage
@@ -62,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthToken(null);
     setUser(null);
   };
+
   // מספק את הערכים של ההקשר לילדים
   // שמקיפים את האפליקציה
   // כולל את מצב המשתמש ופונקציות הלוגין והלוגאוט

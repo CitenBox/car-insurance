@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   profilePicture: { type: String },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   department: { type: String },
+  isVerified: { type: Boolean, default: true }, // הוספתי את השדה הזה כדי שה-signup יעבוד
 
   // שדות לאיפוס סיסמה
   resetPasswordToken: String,
