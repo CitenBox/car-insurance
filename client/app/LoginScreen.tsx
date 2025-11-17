@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import api from './src/api/api';
@@ -10,13 +10,20 @@ import { IUser } from './src/types/User';
 // שולח בקשה לשרת עם האימייל והסיסמה
 // ומעדכן את מצב האותנטיקציה במידה והלוגין הצליח    
 // מציג התראה במקרה של כישלון
-// ומנווט את המשתמש למסך הפרופיל אחרי לוגין מוצלח
+// ומנווט את המשתמש למסך הבית אם כבר מחובר או אחרי לוגין מוצלח
 export default function Login() {
-  const { login } = useContext(AuthContext);
+  const { login, user } = useContext(AuthContext);
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // אם המשתמש כבר מחובר, מפנה למסך הבית אוטומטית
+  useEffect(() => {
+    if (user) {
+      router.replace('/HomePageScreen');
+    }
+  }, [user]);
 
   const handleLogin = async () => {
     try {
@@ -25,7 +32,7 @@ export default function Login() {
 
       await login(user.token!, user);
 
-      router.push('/ProfileScreen');
+      router.push('/HomePageScreen');
     } catch (err: any) {
       Alert.alert('Login Failed', err.response?.data?.message || err.message);
     }
@@ -35,13 +42,34 @@ export default function Login() {
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
 
-      <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
-      <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+      />
 
       <Button title="Login" onPress={handleLogin} />
 
-      <Text style={styles.link} onPress={() => router.push('/SignupScreen')}>Sign Up</Text>
-      <Text style={styles.link} onPress={() => router.push('/ForgotPasswordScreen')}>Forgot Password?</Text>
+      <Text
+        style={styles.link}
+        onPress={() => router.push('/SignupScreen')}
+      >
+        Sign Up
+      </Text>
+      <Text
+        style={styles.link}
+        onPress={() => router.push('/ForgotPasswordScreen')}
+      >
+        Forgot Password?
+      </Text>
     </View>
   );
 }
