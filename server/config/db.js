@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 // חיבור למסד הנתונים MongoDB
 // connectDB פונקציה לחיבור למסד הנתונים
@@ -12,7 +12,7 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(` MongoDB connection error: ${error.message}`);
-    process.exit(1); 
+    process.exit(1);
   }
 };
 
