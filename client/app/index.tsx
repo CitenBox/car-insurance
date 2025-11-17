@@ -1,4 +1,6 @@
-import { registerRootComponent } from 'expo';
-import Layout from './_layout';
-
-registerRootComponent(Layout);
+import React from 'react';
+import { Redirect } from 'expo-router';
+ 
+export default function Index() {
+	return <Redirect href="/LoginScreen" />;
+}
