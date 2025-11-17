@@ -1,5 +1,3 @@
-//export interface IUser 
-//token optional כי לא תמיד נחזיר אותו
 export interface IUser {
   _id: string;
   username: string;
@@ -8,5 +6,6 @@ export interface IUser {
   department?: string;
   profilePicture?: string;
   role: 'user' | 'admin';
-  token?: string; 
+  token?: string;
+  points?: number; // הוספנו points כ-optional
 }

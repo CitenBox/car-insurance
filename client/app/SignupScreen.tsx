@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import api from './src/api/api';
+import api from '../src/api/api';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -15,6 +15,11 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('');
+
+    // פונקציה לטיפול בהרשמה
+    // שולחת בקשה לשרת עם פרטי המשתמש
+    // ומנווטת למסך הלוגין במקרה של הצלחה
+    // מציגה התראה במקרה של כישלון
 
   const handleSignup = async () => {
     try {

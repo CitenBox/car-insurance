@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
-import { AuthContext } from './src/context/AuthContext';
-import api from './src/api/api';
+import { AuthContext } from '../src/context/AuthContext';
+import api from '../src/api/api';
 import { useRouter } from 'expo-router';
 
 export default function Profile() {
@@ -38,6 +38,11 @@ export default function Profile() {
     router.push('/LoginScreen');
   };
 
+  // כפתור חזרה
+  const handleBack = () => {
+    router.back();
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Profile</Text>
@@ -48,6 +53,11 @@ export default function Profile() {
       <TextInput style={styles.input} secureTextEntry value={password} onChangeText={setPassword} placeholder="New Password" />
 
       <Button title="Update Profile" onPress={handleUpdate} />
+
+      <View style={{ marginVertical: 10 }} />
+      <Button title="Back" onPress={handleBack} color="gray" />
+
+      <View style={{ marginVertical: 10 }} />
       <Button title="Logout" onPress={handleLogout} color="red" />
     </View>
   );

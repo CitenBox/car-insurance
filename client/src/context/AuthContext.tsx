@@ -3,33 +3,32 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { IUser } from '../types/User';
 import api, { setAuthToken } from '../api/api';
 
-// הגדרת סוגי ההקשר
+// הוספת points לשדה המשתמש
+export interface IUserWithPoints extends IUser {
+  points?: number; // נקודות המשתמש, אופציונלי
+}
+
+// הגדרת סוגי ההקשר כולל updatePoints
 interface AuthContextProps {
-  user: IUser | null;
-  login: (token: string, user: IUser) => Promise<void>;
+  user: IUserWithPoints | null;
+  login: (token: string, user: IUserWithPoints) => Promise<void>;
   logout: () => Promise<void>;
+  updatePoints?: (points: number) => void;
 }
 
 // יצירת הקשר עם ערכי ברירת מחדל
-// הערכים האמיתיים יוגדרו ב־AuthProvider 
-// שמקיף את האפליקציה
 export const AuthContext = createContext<AuthContextProps>({
   user: null,
   login: async () => {},
   logout: async () => {},
+  updatePoints: () => {},
 });
 
-// ספק ההקשר שמנהל את מצב האותנטיקציה
-// וטוקן האותנטיקציה
-// מספק פונקציות ל־login ו־logout
-// ושומר את המידע ב־AsyncStorage
+// ספק ההקשר שמנהל את מצב האותנטיקציה והטוקן
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<IUser | null>(null);
+  const [user, setUser] = useState<IUserWithPoints | null>(null);
 
-  // טוען אוטומטית Token מהאחסון
-  // ומעדכן את מצב המשתמש כשהרכיב נטען
-  // כך המשתמש נשאר מחובר גם אחרי סגירת האפליקציה
-  // ומגדיר את הטוקן בכותרות של כל הבקשות
+  // טוען אוטומטית Token ומידע משתמש מהאחסון
   useEffect(() => {
     const loadUser = async () => {
       const token = await AsyncStorage.getItem('token');
@@ -43,10 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // פונקציה לטיפול בלוגין
-  // מקבלת טוקן ומידע משתמש
-  // שומרת אותם ב־AsyncStorage
-  // ומעדכנת את מצב המשתמש והטוקן בכותרות
-  const login = async (token: string, userData: IUser) => {
+  const login = async (token: string, userData: IUserWithPoints) => {
     setUser(userData);
     setAuthToken(token);
 
@@ -54,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.setItem('user', JSON.stringify(userData));
   };
 
+  // פונקציה לטיפול בלוגאוט
   const logout = async () => {
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
@@ -62,11 +59,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
-  // מספק את הערכים של ההקשר לילדים
-  // שמקיפים את האפליקציה
-  // כולל את מצב המשתמש ופונקציות הלוגין והלוגאוט
+  // פונקציה לעדכון נקודות בזמן אמת
+  const updatePoints = (points: number) => {
+    if (user) {
+      const updatedUser = { ...user, points };
+      setUser(updatedUser);
+      AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updatePoints }}>
       {children}
     </AuthContext.Provider>
   );

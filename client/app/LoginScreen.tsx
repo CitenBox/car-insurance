@@ -1,9 +1,9 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import api from './src/api/api';
-import { AuthContext } from './src/context/AuthContext';
-import { IUser } from './src/types/User';
+import api from '../src/api/api';
+import { AuthContext } from '../src/context/AuthContext';
+import { IUser } from '../src/types/User';
 
 // מסך הלוגין
 // משתמש בהקשר האותנטיקציה כדי לקרוא לפונקציית הלוגין
@@ -38,6 +38,11 @@ export default function Login() {
     }
   };
 
+  // ➕ כפתור כניסה ללא הרשמה
+  const handleGuestEnter = () => {
+    router.push('/HomePageScreen');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
@@ -57,6 +62,9 @@ export default function Login() {
       />
 
       <Button title="Login" onPress={handleLogin} />
+
+      <View style={{ marginVertical: 10 }} />
+      <Button title="כניסה בלי הרשמה" onPress={handleGuestEnter} color="green" />
 
       <Text
         style={styles.link}
