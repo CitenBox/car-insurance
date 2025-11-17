@@ -1,15 +1,4 @@
-import { Text, View } from "react-native";
+import { registerRootComponent } from 'expo';
+import Layout from './_layout';
 
-export default function Index() {
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
-    </View>
-  );
-}
+registerRootComponent(Layout);

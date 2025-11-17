@@ -1,14 +1,26 @@
-const { createServer } = require('node:http');
+// server.js
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const connectDB = require('./config/db');
 
-const hostname = '127.0.0.1';
-const port = 3000;
+// Load environment variables
+dotenv.config();
 
-const server = createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello World');
-});
+// Connect to MongoDB
+connectDB();
 
-server.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+const app = express();
+
+// Middlewares
+app.use(cors());         
+app.use(express.json());   
+
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+
+// Start server
+const PORT = process.env.PORT;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
