@@ -38,24 +38,17 @@ export default function Profile() {
     router.push('/LoginScreen');
   };
 
-  // כפתור חזרה
-  const handleBack = () => {
-    router.back();
-  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Profile</Text>
 
-      <TextInput style={styles.input} value={username} onChangeText={setUsername} />
-      <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
-      <TextInput style={styles.input} value={department} onChangeText={setDepartment} />
+      <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="username" />
+      <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="fullName" />
+      <TextInput style={styles.input} value={department} onChangeText={setDepartment} placeholder="department" />
       <TextInput style={styles.input} secureTextEntry value={password} onChangeText={setPassword} placeholder="New Password" />
 
       <Button title="Update Profile" onPress={handleUpdate} />
-
-      <View style={{ marginVertical: 10 }} />
-      <Button title="Back" onPress={handleBack} color="gray" />
 
       <View style={{ marginVertical: 10 }} />
       <Button title="Logout" onPress={handleLogout} color="red" />

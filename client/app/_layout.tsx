@@ -13,6 +13,17 @@ function CustomDrawerContent({ navigation }: any) {
         <>
           <Text style={styles.userName}>Welcome, {user.username}!</Text>
 
+          {/* כפתור Home */}
+          <TouchableOpacity
+            style={styles.drawerButton}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('HomePageScreen')}
+          >
+            <MaterialIcons name="home" size={22} color="#007bff" />
+            <Text style={styles.buttonText}>Home</Text>
+          </TouchableOpacity>
+
+          {/* כפתור פרופיל */}
           <TouchableOpacity
             style={styles.drawerButton}
             activeOpacity={0.7}
@@ -22,6 +33,7 @@ function CustomDrawerContent({ navigation }: any) {
             <Text style={styles.buttonText}>Profile</Text>
           </TouchableOpacity>
 
+          {/* כפתור Logout בתחתית */}
           <TouchableOpacity
             style={[styles.logoutButton, { marginTop: 'auto' }]}
             activeOpacity={0.7}
@@ -38,6 +50,7 @@ function CustomDrawerContent({ navigation }: any) {
     </View>
   );
 }
+
 
 export default function RootLayout() {
   return (
