@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthContext } from '../src/context/AuthContext';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function HomePageScreen() {
   const router = useRouter();
@@ -27,7 +27,6 @@ export default function HomePageScreen() {
           activeOpacity={0.7}>
 
           <MaterialIcons name="question-answer" size={50} color="#007bff" />
-          
           <Text style={styles.buttonText}>תרגולות ושאלות</Text>
         </TouchableOpacity>
 
@@ -40,6 +39,16 @@ export default function HomePageScreen() {
           <Text style={styles.buttonText}>מבחן מלא</Text>
         </TouchableOpacity>
       </View>
+
+      {/* כפתור AI Chat בצד ימין למטה */}
+      <TouchableOpacity
+        style={styles.aiButton}
+        activeOpacity={0.7}
+        onPress={() => router.push('/AIChatScreen')}
+      >
+        <MaterialCommunityIcons name="robot" size={28} color="#fff" />
+        <Text style={styles.aiButtonText}>AI Chat</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -104,5 +113,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     marginLeft: 10,
+  },
+  aiButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6f42c1',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 25,
+    elevation: 5,
+  },
+  aiButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });

@@ -1,3 +1,8 @@
+export type Message = {
+  role: 'user' | 'ai';
+  content: string;
+};
+
 export interface IUser {
   _id: string;
   username: string;
@@ -7,5 +12,5 @@ export interface IUser {
   profilePicture?: string;
   role: 'user' | 'admin';
   token?: string;
-  points?: number; // הוספנו points כ-optional
+  points?: number;
 }
