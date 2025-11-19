@@ -1,8 +1,8 @@
-import React, { useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useContext } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../src/context/AuthContext';
-import { MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function HomePageScreen() {
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function HomePageScreen() {
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/PracticeScreen')}
+          onPress={() => router.push('/PracticeListScreen')}
           activeOpacity={0.7}>
 
           <MaterialIcons name="question-answer" size={50} color="#007bff" />
@@ -32,7 +32,7 @@ export default function HomePageScreen() {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/FullTestScreen')}
+          onPress={() => router.push('/PracticeScreen')}
           activeOpacity={0.7}
         >
           <FontAwesome5 name="file-alt" size={50} color="#28a745" />

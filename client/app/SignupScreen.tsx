@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import api, { API_ROUTES } from '../src/api/api';
+import { useState } from 'react';
+import { Alert, Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import api from '../src/api/api';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -14,14 +14,7 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     try {
-      await api.post(API_ROUTES.AUTH_SIGNUP, {
-        username,
-        email,
-        password,
-        fullName,
-        department
-      });
-
+      await api.post('/api/auth/signup', { username, email, password, fullName, department });
       Alert.alert('Success', 'Account created');
       router.push('/LoginScreen');
     } catch (err: any) {
@@ -32,47 +25,12 @@ export default function SignupScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sign Up</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        placeholderTextColor="#888"
-        value={username}
-        onChangeText={setUsername}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#888"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name"
-        placeholderTextColor="#888"
-        value={fullName}
-        onChangeText={setFullName}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Department"
-        placeholderTextColor="#888"
-        value={department}
-        onChangeText={setDepartment}
-      />
+      <TextInput style={styles.input} placeholder="Username"   placeholderTextColor="#888" value={username} onChangeText={setUsername} />
+      <TextInput style={styles.input} placeholder="Email"   placeholderTextColor="#888" value={email} onChangeText={setEmail} />
+      <TextInput style={styles.input} placeholder="Password"   placeholderTextColor="#888" secureTextEntry value={password} onChangeText={setPassword} />
+      <TextInput style={styles.input} placeholder="Full Name"   placeholderTextColor="#888"  value={fullName} onChangeText={setFullName} />
+      <TextInput style={styles.input} placeholder="Department" 
+        placeholderTextColor="#888" value={department} onChangeText={setDepartment} />
 
       <Button title="Sign Up" onPress={handleSignup} />
 

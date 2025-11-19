@@ -1,79 +1,274 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
+import api from "../src/api/api";
 
-const RESOURCE_ID = 'bf7cb748-f220-474b-a4d5-2d59f93db28d';
-
-type Question = {
+// ParsedQuestion – שאלה מוכנה להצגה, כולל אופציות, תשובה נכונה ואפשר תמונות.
+type ParsedQuestion = {
   question: string;
   options: string[];
   correctAnswer: string;
+    images?: string[];
+
+};
+// AnswerForDB – תשובות המשתמש כדי לשמור ב־DB. כולל האם התשובה נכונה.
+// isCorrect – מאפשר לחשב score בקלות.
+type AnswerForDB = {
+  questionid: number;
+  questionText: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
 };
 
-const PracticeScreen = () => {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+//נגדיר טיפוס שאלות עם ההגדרות id,tile2,description4
 
+type Question = {
+  id: string;
+  title2: string;
+  description4: string;
+};
+
+//נגדיר משנה של כמות השאלות ומקסימום שגיאות
+const TOTAL_QUESTIONS = 30;
+const MAX_WRONG = 5;
+
+const PracticeScreen = () => {
+  //ניצור סטייטים  
+  // data(מספר השאלות ומקסימום שגיאות)
+  // loading(מצב טעינה שאלות)
+  // currentQuestion(השאלה הנוכחית)
+  // selectedAnswer(התשובה שנבחרה)
+  // blockClick(מצב לחיצה בלי הרשמה)
+  // questionIndex(מספר השאלה הנוכחית)
+  // wrongCount(מספר הטעויות שגויות)
+  // answers(תשובות המשתמש)
+  const [data, setData] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState<ParsedQuestion | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [blockClick, setBlockClick] = useState(false);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [wrongCount, setWrongCount] = useState(0);
+  const [answers, setAnswers] = useState<AnswerForDB[]>([]); // תשובות המשתמש
+
+
+  // ---- fetchData ----
+  // fetchData מקבל את השאלות מהשרת ומחזירה אותן למסד הנתונים 
+  //
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `https://data.gov.il/api/3/action/datastore_search?resource_id=${RESOURCE_ID}&limit=182`
-      );
-
-      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-      const json = await response.json();
-
-      if (!json.success || !json.result.records) throw new Error('Invalid API response');
-
-      setData(json.result.records);
-    } catch (err: any) {
-      console.error('Fetch failed:', err);
-      Alert.alert(
-        'שגיאה בטעינת השאלות',
-        'לא ניתן לטעון את הנתונים מה-API, ודא שאתה מחובר לאינטרנט',
-      );
+      const res = await api.get<Question[]>("/api/questions/all");
+      setData(res.data);
+    } catch (err) {
+      console.error(err);
+      alert("לא ניתן לטעון את השאלות מהשרת");
     } finally {
       setLoading(false);
     }
   };
+// ניצור את פונקציית parseOptions
+// הפונקצייה מקבלת פרמטר אחד בשם html שיכול להיות string או  undefined סימן שאלה מגיד אופציונלי)
+// typescript אומר שהפונקצייה מחזירה אובייקט עם :
+// option -מערך של מחרוזות
+// currectSAnswer -התשובה הנכונה
+// image? -תמונות אם יש(בתור מערך של מחרוזות)
+  const parseOptions = (
+  html?: string
+): { options: string[]; correctAnswer: string; images?: string[] } => {
+  // אם html לא קיים או הוא undefined מחזיר פרמטרים ריקים
+  // תחזיר אובייקט ריק עם ערכים דיפולטיבים
+  // (options :[]-אין אפשריות להציג תמונות)
+  // correctAnswer:""-אם אין תשובה נכונה
+  // images:[]-אם אין תמונות
+  if (!html) return { options: [], correctAnswer: "", images: [] };
+  //יוצרים משתנה קבוע לחיפוש כל האפשרויות
+  // html.match מחפש את כל ההתאמות שך Regex בhtml 
+  // ה Regex?
 
-  const parseOptions = (html: string): { options: string[]; correctAnswer: string } => {
-    const liMatches = html.match(/<li><span.*?>(.*?)<\/span><\/li>/g) || [];
-    const options: string[] = liMatches.map(li => {
-      const textMatch = li.match(/<span.*?>(.*?)<\/span>/);
-      return textMatch ? textMatch[1] : '';
-    });
-    const correctMatch = html.match(/<span id="correctAnswer.*?">(.*?)<\/span>/);
-    const correctAnswer = correctMatch ? correctMatch[1] : options[0];
-    return { options, correctAnswer };
-  };
+// Regex (או Regular Expression) זה כמו שפה קטנה בתוך קוד שמאפשרת לחפש תבניות בתוך טקסט.
+// אפשר לחשוב על זה כמו חיפוש מתקדם ב־Word או בגוגל, אבל הרבה יותר חזק.
 
-  const generateQuestion = () => {
-    if (data.length === 0) return;
+// למשל:
 
-    const randomIndex = Math.floor(Math.random() * data.length);
-    const record = data[randomIndex];
-    const { options, correctAnswer } = parseOptions(record.description4);
-    const shuffledOptions = options.sort(() => Math.random() - 0.5);
+// "cat" – יחפש את המילה cat בדיוק.
 
-    setCurrentQuestion({
-      question: record.title2,
-      options: shuffledOptions,
-      correctAnswer,
-    });
+// "c.t" – יחפש מילה שמתחילה ב־c, יש בה תו כלשהו באמצע, ומסתיימת ב־t → מתאים ל־cat, cot, cut.
 
-    setSelectedAnswer(null);
-  };
+// "c.*t" – מתאים לכל דבר שמתחיל ב־c ומסתיים ב־t, גם אם יש הרבה תווים באמצע → cat, caught, count.
 
-  const handleAnswer = (option: string) => {
-    setSelectedAnswer(option);
-    if (option === currentQuestion?.correctAnswer) {
-      setTimeout(() => generateQuestion(), 2000);
+// איך זה עובד בקוד שלך?
+// const liMatches = html.match(/<li><span.*?>(.*?)<\/span><\/li>/g) || [];
+
+
+// html.match(...) – מחפש בטקסט (html) כל מקום שתואם ל־Regex.
+
+// /.../g – הסוגריים עם הקווים / זה ה־Regex עצמו, וה־g אומר חפש את כל המקומות, לא רק את הראשון.
+
+// || [] – אם לא מצא כלום, תחזיר מערך ריק במקום null.
+
+// <li><span.*?>(.*?)</span></li>
+
+
+// פירוש פשוט:
+
+// <li> – חפש תגית <li>.
+
+// <span.*?> – בתוך ה־li יש תגית <span> עם כל מאפיין אפשרי.
+
+// (.*?) – קח את הטקסט שבתוך ה־span.
+
+// </span></li> – סוגר את התגיות.
+
+// 💡 התוצאה: liMatches הוא מערך של כל השורות <li><span>תשובה</span></li> שמצאנו ב־HTM
+  const liMatches = html.match(/<li><span.*?>(.*?)<\/span><\/li>/g) || [];
+  const options: string[] = liMatches.map((li) => {
+    const textMatch = li.match(/<span.*?>(.*?)<\/span>/);
+    return textMatch ? textMatch[1] : "";
+  });
+
+  // html.match(/<span id="correctAnswer.*?">(.*?)<\/span>/) → מחפש <span> שבו id מתחיל ב־correctAnswer.
+
+// correctMatch ? correctMatch[1] : options[0] || "" → אם מצאנו, קח את הטקסט שבתוך span.
+
+// אחרת, קח את האפשרות הראשונה (options[0])
+
+// ואם אין אפשרויות בכלל → מחרוזת ריקה.
+  const correctMatch = html.match(/<span id="correctAnswer.*?">(.*?)<\/span>/);
+  const correctAnswer = correctMatch ? correctMatch[1] : options[0] || "";
+
+  // חיפוש תמונות
+  
+// html.match(/<img.*?src="(.*?)".*?>/g) → מחפש את כל תגי <img> עם src.
+
+// imgMatches.map(...) → עבור כל תמונה שמצאנו, שולפים את כתובת ה‑src.
+
+// אם לא מצאנו src → מחזירים מחרוזת ריקה.
+
+
+  const imgMatches = html.match(/<img.*?src="(.*?)".*?>/g) || [];
+  const images = imgMatches.map((img) => {
+    const srcMatch = img.match(/src="(.*?)"/);
+    return srcMatch ? srcMatch[1] : "";
+  });
+    // פשוט מחזירים אובייקט עם שלוש השדות 
+    // option-כל האופציות
+    // correctAnswer-התשובה הנכונה
+    // images-תמונות אם יש
+  return { options, correctAnswer, images };
+};
+
+        // ניצור פונקצייה שתבדוק מתי והאם לסיים את המבחן
+      // בודק אם האינדקס של השאלות גדול שווה לסך כל השאלות מעל שווה ל30(מספר השאלות)
+      // במידה וכן תסיים את המבחן
+const generateQuestion = () => {
+  if (questionIndex >= TOTAL_QUESTIONS || wrongCount >= MAX_WRONG) {
+    finishTest();
+    return;
+  }
+    // בודקים אם אורך הדאטה של השאלות שווה ל0 נעשה return
+  if (data.length === 0) return;
+        // ניצור פונקצייה ליצירת random שתעשה באמצעות Math.floor(Math.random() * data.length)
+  const randomIndex = Math.floor(Math.random() * data.length);
+  // ניצור פונקצייה ליצירת record ( record-הוא השאלה הנבחרת כרגע, שהיא אובייקט מהסוג Question) שתעשה באמצעות data[randomIndex]
+  const record = data[randomIndex];
+    // ניצור פונקצייה ליצירת options שתעשה באמצעות parseOptions ושמחזירה אובייקט עם פרמטרי options, correctAnswer, images
+  const { options, correctAnswer, images } = parseOptions(record.description4);
+  if (options.length === 0) return;
+      // ניצור פונקצייה ליצירת shuffledOptions שתעשה באמצעות options.sort(() => Math.random() - 0.5)
+  const shuffledOptions = options.sort(() => Math.random() - 0.5);
+        // מעדכן את השאלה הנוכחית עם הכותרת, האופציות, התשובה הנכונה והתמונות
+  setCurrentQuestion({
+    question: record.title2 || "שאלה ללא כותרת",
+    options: shuffledOptions,
+    correctAnswer,
+    images,
+  });
+      // ניצור פונקצייה ליצירת setSelectedAnswer שתעשה באמצעות null
+// וניצור פונקצייה ליצירת setBlockClick שתעשה באמצעות false
+  setSelectedAnswer(null);
+  setBlockClick(false);
+};
+
+
+    // מטפל בבחירת תשובה:
+// אם לחיצה חסומה – לא עושה כלום
+// אחרת – מעדכן את התשובה שנבחרה ומוסיף אותה למערך התשובות
+
+ const handleAnswer = (option: string) => {
+  if (blockClick) return;
+      // ניצור פונקצייה ליצירת setSelectedAnswer שתעשה באמצעות פרמטרי option
+  setSelectedAnswer(option);
+      // אם המשתמש לא מחובר או שאינו במצב הבית – לא עושה כלום
+      // אחרת – מעדכן את תשובות המשתמש ומוסיף אותן למערך התשובות
+
+  if (currentQuestion) {
+    setAnswers(prev => [
+      ...prev,
+      {
+        questionid: questionIndex + 1,
+        questionText: currentQuestion.question,
+        userAnswer: option,
+        correctAnswer: currentQuestion.correctAnswer,
+        isCorrect: option === currentQuestion.correctAnswer
+      }
+    ]);
+  }
+      // אם התשובה הנכונה – מעדכן את blockClick ומוסיף אותה למערך התשובות
+      // אחרת – מעדכן את wrongCount ומוסיף אותו למערך התשובות
+if (option === currentQuestion?.correctAnswer) {
+    setBlockClick(true);
+    setTimeout(() => {
+        setQuestionIndex(prev => prev + 1); // <-- רק כאן
+        generateQuestion();
+    }, 1500);
+  } else {
+    const newWrongCount = wrongCount + 1;
+    setWrongCount(prev => prev + 1);
+    // setQuestionIndex(prev => prev + 1);
+        // אם שגיאה – מסיים את המבחן ומוסיף אותו למערך התשובות
+    if (newWrongCount >= MAX_WRONG) {
+      finishTest(false);
     }
-  };
+  }
+};
+      // יוצרים פונקציה לסיים את המבחן ומוסיף אותו למערך התשובות
+const finishTest = async (passed: boolean = true) => {
+  alert(passed ? "המבחן הסתיים בהצלחה!" : "המבחן נכשל!");
+      // מעדכן את הניקוד של המשתמש ומעדכן את totalQuestions
+  const score = TOTAL_QUESTIONS - wrongCount;
+  const totalQuestions = questionIndex;
+      // כאן נעשה post לשרת ומעדכן את answers, score, totalQuestions, timeTaken, improvements
+  try {
+    await api.post("/api/test/submit", {
+      answers,
+      score,
+      totalQuestions,
+      timeTaken: 0, // ניתן להוסיף חישוב זמן
+      improvements: []
+    });
+  } catch (err) {
+    console.error("Error sending test results:", err);
+  }
 
+  // איפוס מצבים
+  setCurrentQuestion(null);
+  setAnswers([]);
+  setQuestionIndex(0);
+  setWrongCount(0);
+   router.push('/HomePageScreen');
+};
+
+
+  // ---- Effects ----
   useEffect(() => {
     fetchData();
   }, []);
@@ -82,28 +277,46 @@ const PracticeScreen = () => {
     if (data.length > 0) generateQuestion();
   }, [data]);
 
-  if (loading) return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
+  // ---- UI ----
+  if (loading)
+    return (
+      <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />
+    );
 
-  if (!currentQuestion) return <Text style={styles.message}>טוען שאלות...</Text>;
+  if (!currentQuestion)
+    return <Text style={styles.message}>חושב על שאלות ...</Text>;
 
   return (
     <View style={styles.container}>
+      <Text style={styles.questionNumber}>
+  שאלה {questionIndex + 1} מתוך {TOTAL_QUESTIONS}
+</Text>
+
       <Text style={styles.title}>בחר את התשובה הנכונה:</Text>
       <Text style={styles.question}>{currentQuestion.question}</Text>
+
+       {/* הצגת תמונות אם יש */}
+    {currentQuestion.images?.map((src, i) => (
+      <Image
+        key={i}
+        source={{ uri: src }}
+        style={styles.image}
+      />
+    ))}
 
       {currentQuestion.options.map((option, index) => {
         const isSelected = selectedAnswer === option;
         const isCorrect = option === currentQuestion.correctAnswer;
 
-        let backgroundColor = '#fff';
-        if (isSelected && isCorrect) backgroundColor = '#4CAF50';
-        if (isSelected && !isCorrect) backgroundColor = '#F44336';
+        let backgroundColor = "#fff";
+        if (isSelected && isCorrect) backgroundColor = "#4CAF50";
+        if (isSelected && !isCorrect) backgroundColor = "#F44336";
 
         return (
           <TouchableOpacity
             key={`${option}-${index}`}
             style={[styles.option, { backgroundColor }]}
-            disabled={isSelected && isCorrect}
+            disabled={blockClick} // מונע לחיצה רק אחרי תשובה נכונה
             onPress={() => handleAnswer(option)}
           >
             <Text style={styles.optionText}>{option}</Text>
@@ -112,7 +325,9 @@ const PracticeScreen = () => {
       })}
 
       {selectedAnswer && selectedAnswer === currentQuestion.correctAnswer && (
-        <Text style={styles.correctText}>נכון! עוברים לשאלה הבאה בעוד 2 שניות...</Text>
+        <Text style={styles.correctText}>
+          נכון! עוברים לשאלה הבאה...
+        </Text>
       )}
       {selectedAnswer && selectedAnswer !== currentQuestion.correctAnswer && (
         <Text style={styles.incorrectText}>טעות, נסה שוב!</Text>
@@ -121,15 +336,69 @@ const PracticeScreen = () => {
   );
 };
 
+// ---- Styles ----
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#f7f7f7' },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  question: { fontSize: 18, marginBottom: 15, textAlign: 'center' },
-  option: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 15, marginVertical: 8 },
-  optionText: { fontSize: 16, textAlign: 'center' },
-  correctText: { color: '#4CAF50', textAlign: 'center', marginTop: 10, fontSize: 16, fontWeight: 'bold' },
-  incorrectText: { color: '#F44336', textAlign: 'center', marginTop: 10, fontSize: 16, fontWeight: 'bold' },
-  message: { textAlign: 'center', marginTop: 50, fontSize: 16 },
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
+    backgroundColor: "#f7f7f7",
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  question: {
+    fontSize: 18,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  option: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    padding: 15,
+    marginVertical: 8,
+  },
+  optionText: {
+    fontSize: 16,
+    textAlign: "center",
+  },
+  correctText: {
+    color: "#4CAF50",
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  incorrectText: {
+    color: "#F44336",
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  message: {
+    textAlign: "center",
+    marginTop: 50,
+    fontSize: 16,
+  },
+  questionNumber: {
+  fontSize: 16,
+  marginBottom: 5,
+  textAlign: "center",
+  color: "#333",
+},
+   image: {          // <-- הוסף כאן
+    width: "100%",
+    height: 200,
+    resizeMode: "contain",
+    marginVertical: 10,
+    borderRadius: 5,
+    backgroundColor: "#eaeaea",
+  },
 });
 
 export default PracticeScreen;

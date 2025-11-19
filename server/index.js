@@ -20,9 +20,20 @@ app.use("/api/auth", require("./routes/auth"));
 const aiRoutes = require("./routes/ai");
 app.use("/api/ai", aiRoutes);
 
+
+// שאלות רגילות
+app.use('/api/questions', require('./routes/question'));
+
+// שאלה רנדומלית
+app.use('/api/questions/random', require('./routes/randomQuestion'));
+
+// מבחן מלא
+app.use('/api/test', require('./routes/FullTest'));
+
+
+
 // Start server
 const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });

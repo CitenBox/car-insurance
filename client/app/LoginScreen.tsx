@@ -1,7 +1,7 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import api, { API_ROUTES } from '../src/api/api';
+import { useContext, useEffect, useState } from 'react';
+import { Alert, Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import api from '../src/api/api';
 import { AuthContext } from '../src/context/AuthContext';
 import { IUser } from '../src/types/User';
 
@@ -20,7 +20,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await api.post(API_ROUTES.AUTH_LOGIN, { email, password });
+      const res = await api.post('api/auth/login', { email, password });
       const user: IUser = res.data;
 
       await login(user.token!, user);

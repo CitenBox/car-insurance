@@ -1,16 +1,20 @@
-import { Platform } from 'react-native';
-import axios from 'axios';
+import axios from "axios";
+import { Platform } from "react-native";
 
-// כתובת ה-IP של המחשב שלכם ברשת המקומית (Correct IP)
-const LOCAL_IP = '10.0.0.6';
+// כתובת ה-IP של המחשב שלכם ברשת המקומית
+const LOCAL_IP = "172.20.10.8";
 
 // זיהוי פלטפורמה כדי לבחור את ה-Base URL המתאים
-let BASE_URL = '';
+let BASE_URL = "";
 
-// אנדרואיד אמולטור → גישה ל-localhost של המחשב
-if (Platform.OS === 'android') {
-  BASE_URL = 'http://10.0.2.2:3000';
-
+if (Platform.OS === "android") {
+  // Android Emulator
+  BASE_URL = "http://10.0.2.2:3000";
+} else if (Platform.OS === "ios") {
+  // iOS Simulator
+  BASE_URL = "http://localhost:3000";
+} else if (Platform.OS === "web") {
+  BASE_URL = "http://localhost:3000";
 } else {
   // iOS סימולטור + iOS מכשיר פיזי + Android מכשיר פיזי
   // כולם משתמשים ב-IP של המחשב ברשת
@@ -20,24 +24,22 @@ if (Platform.OS === 'android') {
 // יצירת axios instance
 const api = axios.create({
   baseURL: BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { "Content-Type": "application/json" },
 });
 
 // פונקציה להוספת טוקן
 export const setAuthToken = (token: string | null) => {
   if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   } else {
-    delete api.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common["Authorization"];
   }
 };
 
 // מסלולים מובנים
 export const API_ROUTES = {
-  AUTH_LOGIN: '/api/auth/login',
-  AUTH_SIGNUP: '/api/auth/signup',
-  AUTH_PROFILE: '/api/auth/profile',
-  AI_ASK: '/api/ai/ask',
+  AUTH: "/api/auth",
+  AI_ASK: "/api/ai/ask",
 };
 
 export default api;
