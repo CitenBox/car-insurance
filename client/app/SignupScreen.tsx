@@ -15,6 +15,7 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     try {
       await api.post('/api/auth/signup', { username, email, password, fullName, department });
+
       Alert.alert('Success', 'Account created');
       router.push('/LoginScreen');
     } catch (err: any) {
