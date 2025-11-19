@@ -21,19 +21,17 @@ const AIChatScreen = () => {
     setLoading(true);
 
     try {
-      const response = await api.post(API_ROUTES.AI_ASK, { prompt: input });
+      const response = await api.post('/api/ai/ask', { prompt: input }); // <-- מסלול נכון
 
       if (response.data.answer) {
         const aiMessage: Message = { role: 'ai', content: response.data.answer };
         setMessages(prev => [...prev, aiMessage]);
       } else {
-        const errorMsg: Message = { role: 'ai', content: 'לא התקבלה תשובה מהשרת.' };
-        setMessages(prev => [...prev, errorMsg]);
+        setMessages(prev => [...prev, { role: 'ai', content: 'לא התקבלה תשובה מהשרת.' }]);
       }
     } catch (err) {
       console.log(err);
-      const errorMsg: Message = { role: 'ai', content: 'שגיאה בשרת, נסה שוב.' };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages(prev => [...prev, { role: 'ai', content: 'שגיאה בשרת, נסה שוב.' }]);
     } finally {
       setLoading(false);
     }

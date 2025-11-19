@@ -9,7 +9,7 @@ function CustomDrawerContent({ navigation }: any) {
 
   return (
     <View style={styles.drawerContainer}>
-      {user && (
+      {user ? (
         <>
           <Text style={styles.userName}>Welcome, {user.username}!</Text>
 
@@ -46,11 +46,22 @@ function CustomDrawerContent({ navigation }: any) {
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </>
+      ) : (
+        <>
+          {/* משתמש לא מחובר - מציג רק Login */}
+          <TouchableOpacity
+            style={[styles.drawerButton, { marginTop: 50 }]}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('LoginScreen')}
+          >
+            <MaterialIcons name="login" size={22} color="#007bff" />
+            <Text style={styles.buttonText}>Login</Text>
+          </TouchableOpacity>
+        </>
       )}
     </View>
   );
 }
-
 
 export default function RootLayout() {
   return (
@@ -58,17 +69,16 @@ export default function RootLayout() {
       <Drawer
         screenOptions={{
           headerShown: true,
-          drawerPosition: 'right', // Drawer ייפתח מהצד ימין
+          drawerPosition: 'right',
           drawerStyle: {
             backgroundColor: '#f8f9fa',
             width: 260,
             paddingVertical: 30,
           },
-          headerTitle: '', // לא מציג שם במסך
+          headerTitle: '',
         }}
         drawerContent={(props) => (
           <>
-            {/* כפתור "Menu" בצד ימין */}
             <TouchableOpacity
               onPress={() => props.navigation.toggleDrawer()} 
               style={{ position: 'absolute', top: 15, right: 15, zIndex: 1000 }}

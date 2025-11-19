@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import api from '../src/api/api';
+import api, { API_ROUTES } from '../src/api/api';
 import { AuthContext } from '../src/context/AuthContext';
 import { IUser } from '../src/types/User';
 
@@ -27,11 +27,10 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await api.post('/login', { email, password });
+      const res = await api.post(API_ROUTES.AUTH_LOGIN, { email, password });
       const user: IUser = res.data;
 
       await login(user.token!, user);
-
       router.push('/HomePageScreen');
     } catch (err: any) {
       Alert.alert('Login Failed', err.response?.data?.message || err.message);
@@ -66,16 +65,11 @@ export default function Login() {
       <View style={{ marginVertical: 10 }} />
       <Button title="כניסה בלי הרשמה" onPress={handleGuestEnter} color="green" />
 
-      <Text
-        style={styles.link}
-        onPress={() => router.push('/SignupScreen')}
-      >
+      <Text style={styles.link} onPress={() => router.push('/SignupScreen')}>
         Sign Up
       </Text>
-      <Text
-        style={styles.link}
-        onPress={() => router.push('/ForgotPasswordScreen')}
-      >
+
+      <Text style={styles.link} onPress={() => router.push('/ForgotPasswordScreen')}>
         Forgot Password?
       </Text>
     </View>

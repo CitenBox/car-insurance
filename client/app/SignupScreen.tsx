@@ -1,29 +1,32 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import api from '../src/api/api';
+import api, { API_ROUTES } from '../src/api/api';
 
 export default function SignupScreen() {
   const router = useRouter();
 
-  // פונקציה לטיפול בהרשמה
-  // שולחת בקשה לשרת עם פרטי המשתמש
-  // ומנווטת למסך הלוגין במקרה של הצלחה
-  // מציגה התראה במקרה של כישלון
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('');
 
-    // פונקציה לטיפול בהרשמה
-    // שולחת בקשה לשרת עם פרטי המשתמש
-    // ומנווטת למסך הלוגין במקרה של הצלחה
-    // מציגה התראה במקרה של כישלון
-
+  // פונקציה לטיפול בהרשמה
+  // שולחת בקשה לשרת עם פרטי המשתמש
+  // ומנווטת למסך הלוגין במקרה של הצלחה
+  // מציגה התראה במקרה של כישלון
   const handleSignup = async () => {
     try {
-      await api.post('/signup', { username, email, password, fullName, department });
+      await api.post(API_ROUTES.AUTH_SIGNUP, {
+        username,
+        email,
+        password,
+        fullName,
+        department
+        });
+
+
       Alert.alert('Success', 'Account created');
       router.push('/LoginScreen');
     } catch (err: any) {
@@ -43,7 +46,9 @@ export default function SignupScreen() {
 
       <Button title="Sign Up" onPress={handleSignup} />
 
-      <Text style={styles.link} onPress={() => router.push('/LoginScreen')}>Back to Login</Text>
+      <Text style={styles.link} onPress={() => router.push('/LoginScreen')}>
+        Back to Login
+      </Text>
     </View>
   );
 }

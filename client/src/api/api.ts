@@ -8,19 +8,16 @@ const LOCAL_IP = '192.168.1.5'; // עדכן לפי הצורך
 let BASE_URL = '';
 
 if (Platform.OS === 'android') {
-  // Android Emulator
   BASE_URL = 'http://10.0.2.2:3000';
 } else if (Platform.OS === 'ios') {
-  // iOS Simulator
   BASE_URL = 'http://localhost:3000';
 } else {
-  // מכשיר פיזי
   BASE_URL = `http://${LOCAL_IP}:3000`;
 }
 
 // יצירת axios instance
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: BASE_URL, // <-- כאן רק הבסיס, בלי /api/auth
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -35,7 +32,9 @@ export const setAuthToken = (token: string | null) => {
 
 // מסלולים מובנים
 export const API_ROUTES = {
-  AUTH: '/api/auth',
+  AUTH_LOGIN: '/api/auth/login',
+  AUTH_SIGNUP: '/api/auth/signup',
+  AUTH_PROFILE: '/api/auth/profile',
   AI_ASK: '/api/ai/ask',
 };
 

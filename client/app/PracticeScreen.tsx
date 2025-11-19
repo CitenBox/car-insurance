@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 
 const RESOURCE_ID = 'bf7cb748-f220-474b-a4d5-2d59f93db28d';
 
@@ -19,13 +19,21 @@ const PracticeScreen = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://data.gov.il/api/3/action/datastore_search?resource_id=${RESOURCE_ID}&limit=1802`
+        `https://data.gov.il/api/3/action/datastore_search?resource_id=${RESOURCE_ID}&limit=182`
       );
+
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
       const json = await response.json();
-      setData(json.result.records || []);
-    } catch (err) {
-      console.error(err);
-      alert('לא ניתן לטעון נתונים מה-API');
+
+      if (!json.success || !json.result.records) throw new Error('Invalid API response');
+
+      setData(json.result.records);
+    } catch (err: any) {
+      console.error('Fetch failed:', err);
+      Alert.alert(
+        'שגיאה בטעינת השאלות',
+        'לא ניתן לטעון את הנתונים מה-API, ודא שאתה מחובר לאינטרנט',
+      );
     } finally {
       setLoading(false);
     }
@@ -61,12 +69,8 @@ const PracticeScreen = () => {
 
   const handleAnswer = (option: string) => {
     setSelectedAnswer(option);
-
-    // אם נכון, מחכה 4 שניות ואז עוברים לשאלה הבאה
     if (option === currentQuestion?.correctAnswer) {
-      setTimeout(() => {
-        generateQuestion();
-      }, 2000); // 4 שניות
+      setTimeout(() => generateQuestion(), 2000);
     }
   };
 
@@ -75,9 +79,7 @@ const PracticeScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (data.length > 0) {
-      generateQuestion();
-    }
+    if (data.length > 0) generateQuestion();
   }, [data]);
 
   if (loading) return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
@@ -93,7 +95,6 @@ const PracticeScreen = () => {
         const isSelected = selectedAnswer === option;
         const isCorrect = option === currentQuestion.correctAnswer;
 
-        // צבע רק אם נבחר
         let backgroundColor = '#fff';
         if (isSelected && isCorrect) backgroundColor = '#4CAF50';
         if (isSelected && !isCorrect) backgroundColor = '#F44336';
@@ -102,7 +103,7 @@ const PracticeScreen = () => {
           <TouchableOpacity
             key={`${option}-${index}`}
             style={[styles.option, { backgroundColor }]}
-            disabled={isSelected && isCorrect} // מאפשר לבחור שוב אם טעו
+            disabled={isSelected && isCorrect}
             onPress={() => handleAnswer(option)}
           >
             <Text style={styles.optionText}>{option}</Text>
@@ -121,53 +122,14 @@ const PracticeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#f7f7f7',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  question: {
-    fontSize: 18,
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  option: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 15,
-    marginVertical: 8,
-  },
-  optionText: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  correctText: {
-    color: '#4CAF50',
-    textAlign: 'center',
-    marginTop: 10,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  incorrectText: {
-    color: '#F44336',
-    textAlign: 'center',
-    marginTop: 10,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  message: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-  },
+  container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#f7f7f7' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  question: { fontSize: 18, marginBottom: 15, textAlign: 'center' },
+  option: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 15, marginVertical: 8 },
+  optionText: { fontSize: 16, textAlign: 'center' },
+  correctText: { color: '#4CAF50', textAlign: 'center', marginTop: 10, fontSize: 16, fontWeight: 'bold' },
+  incorrectText: { color: '#F44336', textAlign: 'center', marginTop: 10, fontSize: 16, fontWeight: 'bold' },
+  message: { textAlign: 'center', marginTop: 50, fontSize: 16 },
 });
 
 export default PracticeScreen;
