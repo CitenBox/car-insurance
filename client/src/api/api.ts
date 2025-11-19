@@ -1,23 +1,25 @@
 import { Platform } from 'react-native';
 import axios from 'axios';
 
-// כתובת ה-IP של המחשב שלכם ברשת המקומית
-const LOCAL_IP = '192.168.1.5'; // עדכן לפי הצורך
+// כתובת ה-IP של המחשב שלכם ברשת המקומית (Correct IP)
+const LOCAL_IP = '10.0.0.6';
 
 // זיהוי פלטפורמה כדי לבחור את ה-Base URL המתאים
 let BASE_URL = '';
 
+// אנדרואיד אמולטור → גישה ל-localhost של המחשב
 if (Platform.OS === 'android') {
   BASE_URL = 'http://10.0.2.2:3000';
-} else if (Platform.OS === 'ios') {
-  BASE_URL = 'http://localhost:3000';
+
 } else {
+  // iOS סימולטור + iOS מכשיר פיזי + Android מכשיר פיזי
+  // כולם משתמשים ב-IP של המחשב ברשת
   BASE_URL = `http://${LOCAL_IP}:3000`;
 }
 
 // יצירת axios instance
 const api = axios.create({
-  baseURL: BASE_URL, // <-- כאן רק הבסיס, בלי /api/auth
+  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 

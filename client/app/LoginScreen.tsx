@@ -5,12 +5,6 @@ import api, { API_ROUTES } from '../src/api/api';
 import { AuthContext } from '../src/context/AuthContext';
 import { IUser } from '../src/types/User';
 
-// מסך הלוגין
-// משתמש בהקשר האותנטיקציה כדי לקרוא לפונקציית הלוגין
-// שולח בקשה לשרת עם האימייל והסיסמה
-// ומעדכן את מצב האותנטיקציה במידה והלוגין הצליח    
-// מציג התראה במקרה של כישלון
-// ומנווט את המשתמש למסך הבית אם כבר מחובר או אחרי לוגין מוצלח
 export default function Login() {
   const { login, user } = useContext(AuthContext);
   const router = useRouter();
@@ -18,7 +12,6 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // אם המשתמש כבר מחובר, מפנה למסך הבית אוטומטית
   useEffect(() => {
     if (user) {
       router.replace('/HomePageScreen');
@@ -37,7 +30,6 @@ export default function Login() {
     }
   };
 
-  // ➕ כפתור כניסה ללא הרשמה
   const handleGuestEnter = () => {
     router.push('/HomePageScreen');
   };
@@ -49,12 +41,14 @@ export default function Login() {
       <TextInput
         style={styles.input}
         placeholder="Email"
+        placeholderTextColor="#888"
         value={email}
         onChangeText={setEmail}
       />
       <TextInput
         style={styles.input}
         placeholder="Password"
+        placeholderTextColor="#888"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -79,6 +73,15 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: 'center' },
   title: { fontSize: 26, textAlign: 'center', marginBottom: 20 },
-  input: { borderWidth: 1, padding: 12, borderRadius: 8, marginBottom: 16 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#aaa',
+    height: 48,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 16,
+    color: '#000',
+  },
   link: { color: 'blue', textAlign: 'center', marginTop: 10 },
 });
