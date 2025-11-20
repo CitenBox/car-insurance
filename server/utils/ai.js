@@ -2,12 +2,23 @@ const openai = require("../config/openai");
 
 async function askAI(prompt) {
   try {
+    // Use a broadly available chat model. Change to a different model if you have access.
+    const model = process.env.OPENAI_MODEL || "gpt-3.5-turbo";
+
     const response = await openai.chat.completions.create({
-      model: "gpt-4.1-mini", // or whatever model you plan to use
+      model,
       messages: [{ role: "user", content: prompt }],
     });
 
-    return response.choices[0].message.content;
+    // Safely extract text from various possible response shapes
+    if (response && response.choices && response.choices.length > 0) {
+      const choice = response.choices[0];
+      if (choice.message && choice.message.content) return choice.message.content;
+      if (choice.text) return choice.text;
+    }
+
+    // Fallback: return a stringified response for easier debugging
+    return JSON.stringify(response);
   } catch (error) {
     console.error("AI Error:", error);
     throw error;

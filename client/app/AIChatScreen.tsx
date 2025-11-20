@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, Button, FlatList, Text, KeyboardAvoidingView, Platform } from 'react-native';
-import api, { API_ROUTES } from '../src/api/api';
+import { useState } from 'react';
+import { Button, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import api from '../src/api/api';
 
 type Message = {
   role: 'user' | 'ai';
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   messagesList: { padding: 10 },
   messageContainer: { padding: 10, borderRadius: 8, marginVertical: 5, maxWidth: '80%' },
   user: { backgroundColor: '#007AFF', alignSelf: 'flex-end' },
-  ai: { backgroundColor: '#e5e5ea', alignSelf: 'flex-start' },
+  ai: { backgroundColor: '#000000ff', alignSelf: 'flex-start' },
   messageText: { color: '#fff' },
   inputContainer: { flexDirection: 'row', padding: 10, borderTopWidth: 1, borderColor: '#ccc' },
   input: { flex: 1, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginRight: 10, backgroundColor: '#fff', color: '#000' },

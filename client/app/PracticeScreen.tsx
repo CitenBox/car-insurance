@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -36,6 +37,10 @@ type Question = {
   description4: string;
 };
 
+    type SubmitResponse ={
+      aiInsights?:string;
+    }
+
 //נגדיר משנה של כמות השאלות ומקסימום שגיאות
 const TOTAL_QUESTIONS = 30;
 const MAX_WRONG = 5;
@@ -58,6 +63,8 @@ const PracticeScreen = () => {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [answers, setAnswers] = useState<AnswerForDB[]>([]); // תשובות המשתמש
+  const [startTime,setstartTime] = useState(new Date());
+  const[questionTime,setQuestionTime] = useState(0);
 
 
   // ---- fetchData ----
@@ -196,6 +203,8 @@ const generateQuestion = () => {
 // וניצור פונקצייה ליצירת setBlockClick שתעשה באמצעות false
   setSelectedAnswer(null);
   setBlockClick(false);
+  // ניצור פונקצייה ליצירת setQuestionTime שתעשה באמצעות new Date()
+    setQuestionTime(Date.now());
 };
 
 
@@ -204,6 +213,7 @@ const generateQuestion = () => {
 // אחרת – מעדכן את התשובה שנבחרה ומוסיף אותה למערך התשובות
 
  const handleAnswer = (option: string) => {
+  const timeTaken=Date.now()-questionTime;
   if (blockClick) return;
       // ניצור פונקצייה ליצירת setSelectedAnswer שתעשה באמצעות פרמטרי option
   setSelectedAnswer(option);
@@ -243,18 +253,25 @@ if (option === currentQuestion?.correctAnswer) {
       // יוצרים פונקציה לסיים את המבחן ומוסיף אותו למערך התשובות
 const finishTest = async (passed: boolean = true) => {
   alert(passed ? "המבחן הסתיים בהצלחה!" : "המבחן נכשל!");
-      // מעדכן את הניקוד של המשתמש ומעדכן את totalQuestions
+
   const score = TOTAL_QUESTIONS - wrongCount;
   const totalQuestions = questionIndex;
-      // כאן נעשה post לשרת ומעדכן את answers, score, totalQuestions, timeTaken, improvements
+  const totalTime = Date.now() - startTime.getTime(); // חישוב זמן סיום
+
   try {
-    await api.post("/api/test/submit", {
+    const res = await api.post<SubmitResponse>("/api/FullTest/submit", {
       answers,
       score,
       totalQuestions,
-      timeTaken: 0, // ניתן להוסיף חישוב זמן
-      improvements: []
+      timeTaken: totalTime,
     });
+
+    if (res.data.aiInsights) {
+      router.push({
+        pathname: "/AIQuizScreen",
+        params: { autoMessage: res.data.aiInsights }
+      });
+    }
   } catch (err) {
     console.error("Error sending test results:", err);
   }
@@ -264,8 +281,9 @@ const finishTest = async (passed: boolean = true) => {
   setAnswers([]);
   setQuestionIndex(0);
   setWrongCount(0);
-   router.push('/HomePageScreen');
+  router.push('/HomePageScreen');
 };
+
 
 
   // ---- Effects ----
@@ -276,6 +294,12 @@ const finishTest = async (passed: boolean = true) => {
   useEffect(() => {
     if (data.length > 0) generateQuestion();
   }, [data]);
+
+// ניצור useeffect לקביעת זמן ההתחלה של המבחן
+useEffect(()=>{
+  setstartTime(new Date());
+},[]);
+
 
   // ---- UI ----
   if (loading)
@@ -332,6 +356,23 @@ const finishTest = async (passed: boolean = true) => {
       {selectedAnswer && selectedAnswer !== currentQuestion.correctAnswer && (
         <Text style={styles.incorrectText}>טעות, נסה שוב!</Text>
       )}
+      <TouchableOpacity
+  style={styles.aiButton}
+  activeOpacity={0.7}
+  onPress={() =>
+    router.push({
+      pathname: "/AIQuizScreen",
+      params: {
+        question: currentQuestion?.question,
+        options: JSON.stringify(currentQuestion?.options || []),
+      }
+    })
+  }
+>
+  <MaterialCommunityIcons name="robot" size={28} color="#fff" />
+  <Text style={styles.aiButtonText}>שאל את ה־AI</Text>
+</TouchableOpacity>
+
     </View>
   );
 };
@@ -399,6 +440,24 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "#eaeaea",
   },
+  aiButton: {
+  position: "absolute",
+  bottom: 30,
+  right: 20,
+  backgroundColor: "#007AFF",
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  borderRadius: 30,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  elevation: 5,
+},
+aiButtonText: {
+  color: "#fff",
+  fontSize: 14,
+  fontWeight: "600",
+},
 });
 
 export default PracticeScreen;
