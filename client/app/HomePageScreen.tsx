@@ -13,14 +13,16 @@ export default function HomePageScreen() {
       {/* Welcome */}
       <Text style={styles.title}>Welcome, {user?.username || 'User'}!</Text>
 
-      {/* ספירת נקודות בצד שמאל */}
+      {/* Points */}
       <View style={styles.pointsContainer}>
         <Text style={styles.pointsLabel}>Your Points:</Text>
         <Text style={styles.pointsValue}>{user?.points || 0}</Text>
       </View>
 
-      {/* כפתורים */}
+      {/* Buttons */}
       <View style={styles.buttonsContainer}>
+        
+        {/* Practice List */}
         <TouchableOpacity
           style={styles.button}
           onPress={() => router.push('/PracticeListScreen')}
@@ -30,17 +32,29 @@ export default function HomePageScreen() {
           <Text style={styles.buttonText}>תרגולות ושאלות</Text>
         </TouchableOpacity>
 
+        {/* Full Test */}
         <TouchableOpacity
           style={styles.button}
           onPress={() => router.push('/PracticeScreen')}
-          activeOpacity={0.7}
-        >
+          activeOpacity={0.7}>
+
           <FontAwesome5 name="file-alt" size={50} color="#28a745" />
           <Text style={styles.buttonText}>מבחן מלא</Text>
         </TouchableOpacity>
+
+        {/* Test History */}
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/TestHistoryScreen')}
+          activeOpacity={0.7}>
+
+          <MaterialCommunityIcons name="history" size={50} color="#ff8800" />
+          <Text style={styles.buttonText}>Test History</Text>
+        </TouchableOpacity>
+
       </View>
 
-      {/* כפתור AI Chat בצד ימין למטה */}
+      {/* AI Button */}
       <TouchableOpacity
         style={styles.aiButton}
         activeOpacity={0.7}
@@ -49,6 +63,7 @@ export default function HomePageScreen() {
         <MaterialCommunityIcons name="robot" size={28} color="#fff" />
         <Text style={styles.aiButtonText}>AI Chat</Text>
       </TouchableOpacity>
+      
     </View>
   );
 }
@@ -59,11 +74,13 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f8f9fa',
   },
+
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 30,
   },
+
   pointsContainer: {
     marginBottom: 40,
     alignSelf: 'flex-start',
@@ -71,49 +88,42 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
   },
+
   pointsLabel: {
     fontSize: 18,
     color: '#fff',
   },
+
   pointsValue: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
   },
+
   buttonsContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 30,
   },
+
   button: {
     alignItems: 'center',
     backgroundColor: '#e9ecef',
     padding: 20,
     borderRadius: 12,
-    width: '45%',
+    width: '47%',      // 2 buttons per row
+    marginBottom: 20,  // space for second row
   },
+
   buttonText: {
     marginTop: 10,
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
   },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: '#dc3545',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-  },
-  logoutText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 10,
-  },
+
   aiButton: {
     position: 'absolute',
     bottom: 30,
@@ -126,6 +136,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     elevation: 5,
   },
+
   aiButtonText: {
     color: '#fff',
     fontSize: 16,

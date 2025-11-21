@@ -1,0 +1,164 @@
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Modal, ScrollView, TextInput, Button, Alert } from 'react-native';
+import api, { API_ROUTES } from '../src/api/api';
+
+type AnswerForDB = {
+  questionid: number;
+  questionText: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+};
+
+type TestHistoryItem = {
+  _id: string;
+  date: string;
+  score: number;
+  totalQuestions: number;
+  wrongAnswers: number;
+  passed: boolean;
+  answered: AnswerForDB[];
+  aiInsights?: string;
+};
+
+const TestHistoryScreen = () => {
+  const [history, setHistory] = useState<TestHistoryItem[]>([]);
+  const [filteredHistory, setFilteredHistory] = useState<TestHistoryItem[]>([]);
+  const [selectedTest, setSelectedTest] = useState<TestHistoryItem | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'failed'>('all');
+  const [dateFilter, setDateFilter] = useState<string>(''); // YYYY-MM-DD
+
+  const fetchHistory = async () => {
+    try {
+      const res = await api.get<TestHistoryItem[]>(API_ROUTES.FULLTEST.HISTORY);
+      const sorted = res.data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setHistory(sorted);
+      setFilteredHistory(sorted);
+    } catch (err) {
+      console.error('Error fetching history:', err);
+      Alert.alert("שגיאה", "לא ניתן לטעון את ההיסטוריה מהשרת");
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const applyFilters = () => {
+    let filtered = [...history];
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(test => statusFilter === 'passed' ? test.passed : !test.passed);
+    }
+
+    if (dateFilter) {
+      filtered = filtered.filter(test => test.date.startsWith(dateFilter));
+    }
+
+    setFilteredHistory(filtered);
+  };
+
+  const openTestDetails = (test: TestHistoryItem) => {
+    setSelectedTest(test);
+    setModalVisible(true);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>היסטוריית מבחנים</Text>
+
+      {/* פילטרים */}
+      <View style={styles.filters}>
+        <Text>סטטוס:</Text>
+        <View style={styles.filterButtons}>
+          <Button title="כולם" onPress={() => setStatusFilter('all')} />
+          <Button title="עבר" onPress={() => setStatusFilter('passed')} />
+          <Button title="נכשל" onPress={() => setStatusFilter('failed')} />
+        </View>
+
+        <Text>תאריך (YYYY-MM-DD):</Text>
+        <TextInput
+          style={styles.dateInput}
+          value={dateFilter}
+          placeholder="2025-11-21"
+          onChangeText={setDateFilter}
+        />
+
+        <Button title="סנן" onPress={applyFilters} />
+      </View>
+
+      {filteredHistory.length === 0 ? (
+        <Text style={styles.noData}>אין מבחנים תואמים את המסנן</Text>
+      ) : (
+        <FlatList
+          data={filteredHistory}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.testItem} onPress={() => openTestDetails(item)}>
+              <Text style={styles.testText}>מבחן מיום: {new Date(item.date).toLocaleDateString()}</Text>
+              <Text style={styles.testText}>ניקוד: {item.score} / {item.totalQuestions}</Text>
+              <Text style={styles.testText}>טעויות: {item.wrongAnswers}</Text>
+              <Text style={styles.testText}>סטטוס: {item.passed ? 'עבר' : 'נכשל'}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
+
+      {/* Modal להצגת פרטי מבחן */}
+      <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalHeader}>פרטי מבחן</Text>
+          <ScrollView>
+            {selectedTest?.answered.map(answer => (
+              <View key={answer.questionid} style={styles.answerItem}>
+                <Text style={styles.questionText}>{answer.questionText}</Text>
+                <Text style={answer.isCorrect ? styles.correctText : styles.incorrectText}>
+                  תשובה שלך: {answer.userAnswer} ({answer.isCorrect ? 'נכון' : 'לא נכון'})
+                </Text>
+                {!answer.isCorrect && (
+                  <Text style={styles.correctAnswerText}>תשובה נכונה: {answer.correctAnswer}</Text>
+                )}
+              </View>
+            ))}
+
+            {selectedTest?.aiInsights && (
+              <View style={styles.aiInsightsContainer}>
+                <Text style={styles.aiHeader}>ניתוח AI:</Text>
+                <Text style={styles.aiText}>{selectedTest.aiInsights}</Text>
+              </View>
+            )}
+          </ScrollView>
+          <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+            <Text style={styles.closeButtonText}>סגור</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#f7f7f7' },
+  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  filters: { marginBottom: 15 },
+  filterButtons: { flexDirection: 'row', justifyContent: 'space-around', marginVertical: 5 },
+  dateInput: { borderWidth: 1, borderColor: '#ccc', padding: 5, borderRadius: 5, marginBottom: 10 },
+  noData: { textAlign: 'center', fontSize: 16, marginTop: 20 },
+  testItem: { backgroundColor: '#fff', padding: 15, marginBottom: 10, borderRadius: 8, elevation: 2 },
+  testText: { fontSize: 16 },
+  modalContainer: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  modalHeader: { fontSize: 22, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
+  answerItem: { marginBottom: 15, padding: 10, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+  questionText: { fontSize: 16, marginBottom: 5 },
+  correctText: { color: 'green', fontWeight: 'bold' },
+  incorrectText: { color: 'red', fontWeight: 'bold' },
+  correctAnswerText: { color: 'blue' },
+  aiInsightsContainer: { marginTop: 20, padding: 10, backgroundColor: '#eef', borderRadius: 8 },
+  aiHeader: { fontWeight: 'bold', fontSize: 16, marginBottom: 5 },
+  aiText: { fontSize: 14, color: '#333' },
+  closeButton: { backgroundColor: '#007AFF', padding: 15, borderRadius: 8, marginTop: 10, alignItems: 'center' },
+  closeButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+});
+
+export default TestHistoryScreen;

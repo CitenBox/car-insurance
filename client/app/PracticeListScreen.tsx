@@ -1,143 +1,124 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
 import api from "../src/api/api";
-
-type PracticeItem = {
-  id: string;
-  title2: string;
-  description4: string; // HTML עם השאלה, אפשרויות ותשובה
-};
 
 type ParsedQuestion = {
   question: string;
   correctAnswer: string;
+  choices: string[];
   images?: string[];
 };
 
-export default function PracticeListScreen() {
+export default function PracticeScreen() {
   const [loading, setLoading] = useState(false);
-  const [practices, setPractices] = useState<PracticeItem[]>([]);
-  const [selectedQuestion, setSelectedQuestion] = useState<ParsedQuestion | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState<ParsedQuestion | null>(null);
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
-  const fetchPractices = async () => {
+  const [correctCount, setCorrectCount] = useState(0);
+  const [wrongCount, setWrongCount] = useState(0);
+
+  const fetchRandomQuestion = async () => {
     setLoading(true);
     try {
-      const res = await api.get<PracticeItem[]>("/api/questions/all");
-      setPractices(res.data);
+      const res = await api.get("/api/questions/random");
+      const parsed = parseQuestion(res.data);
+      setCurrentQuestion(parsed);
+      setSelectedChoice(null);
+      setFeedback(null);
     } catch (err) {
       console.error(err);
-      alert("לא ניתן לטעון את התרגולות מהשרת");
+      alert("לא ניתן לטעון את השאלה מהשרת");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPractices();
+    fetchRandomQuestion();
   }, []);
 
-  const parseQuestion = (html: string): ParsedQuestion => {
-    // מחלץ את השאלה
-    const questionMatch = html.match(/<h1.*?>(.*?)<\/h1>/) || html.match(/<p.*?>(.*?)<\/p>/);
-    const questionText = questionMatch ? questionMatch[1] : "שאלה ללא טקסט";
-
-    // מחלץ את התשובה הנכונה
-    const correctMatch = html.match(/<span id="correctAnswer.*?">(.*?)<\/span>/);
-    const correctAnswer = correctMatch ? correctMatch[1] : "";
-
-    // מחלץ תמונות אם יש
-    const imgMatches = html.match(/<img.*?src="(.*?)".*?>/g) || [];
-    const images = imgMatches.map((img) => {
-      const srcMatch = img.match(/src="(.*?)"/);
-      return srcMatch ? srcMatch[1] : "";
-    });
-
-    return { question: questionText, correctAnswer, images };
+  const parseQuestion = (item: any): ParsedQuestion => {
+    const questionText = item.question || "שאלה ללא טקסט";
+    const correctAnswer = item.correctAnswer || "";
+    const choices = item.options || [];
+    const images = item.images || [];
+    return { question: questionText, correctAnswer, choices, images };
   };
 
-  const handlePress = (item: PracticeItem) => {
-    const parsed = parseQuestion(item.description4);
-    setSelectedQuestion(parsed);
-    setShowModal(true);
+  const handleChoicePress = (choice: string) => {
+    if (!currentQuestion) return;
+    setSelectedChoice(choice);
+
+    if (choice === currentQuestion.correctAnswer) {
+      setFeedback("תשובה נכונה!");
+      setCorrectCount(prev => prev + 1);
+      setTimeout(() => {
+        fetchRandomQuestion();
+      }, 1500);
+    } else {
+      setFeedback("תשובה שגויה, נסה שוב");
+      setWrongCount(prev => prev + 1);
+    }
   };
 
-  if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
+  if (loading || !currentQuestion) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>תרגולות ושאלות</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsText}>נכונות: {correctCount}</Text>
+        <Text style={styles.statsText}>שגויות: {wrongCount}</Text>
+      </View>
 
-      <FlatList
-        data={practices}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => handlePress(item)}>
-            <Text style={styles.itemText}>{item.title2}</Text>
+      {currentQuestion.images && currentQuestion.images.length > 0 && (
+        <Image source={{ uri: currentQuestion.images[0] }} style={styles.image} />
+      )}
+
+      <Text style={styles.questionText}>{currentQuestion.question}</Text>
+
+      {currentQuestion.choices.map((choice, index) => {
+        const isSelected = selectedChoice === choice;
+        let backgroundColor = "#e9ecef";
+
+        if (feedback && isSelected) {
+          backgroundColor =
+            choice === currentQuestion.correctAnswer ? "#28a745" : "#dc3545";
+        }
+
+        return (
+          <TouchableOpacity
+            key={index}
+            style={[styles.choiceButton, { backgroundColor }]}
+            onPress={() => handleChoicePress(choice)}
+          >
+            <Text style={styles.choiceText}>{choice}</Text>
           </TouchableOpacity>
-        )}
-      />
+        );
+      })}
 
-      {/* Modal להצגת השאלה, תמונות ותשובה */}
-      <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>שאלה:</Text>
-            <Text style={styles.modalQuestion}>{selectedQuestion?.question}</Text>
-
-            {selectedQuestion?.images?.map((src, i) => (
-              <Image key={i} source={{ uri: src }} style={styles.image} />
-            ))}
-
-            <Text style={[styles.modalTitle, { marginTop: 15 }]}>תשובה:</Text>
-            <Text style={styles.modalAnswer}>{selectedQuestion?.correctAnswer}</Text>
-
-            <TouchableOpacity style={styles.closeButton} onPress={() => setShowModal(false)}>
-              <Text style={styles.closeText}>סגור</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </View>
+      {feedback && <Text style={styles.feedbackText}>{feedback}</Text>}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#f8f9fa" },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
-  item: { padding: 15, backgroundColor: "#e9ecef", borderRadius: 10, marginBottom: 10 },
-  itemText: { fontSize: 16 },
-
-  modalBackground: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    width: "85%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    alignItems: "center",
-  },
-  modalTitle: { fontSize: 18, fontWeight: "bold", textAlign: "center" },
-  modalQuestion: { fontSize: 16, marginTop: 10, textAlign: "center" },
-  modalAnswer: { fontSize: 16, marginTop: 5, textAlign: "center", color: "#28a745" },
-  closeButton: {
-    marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-    backgroundColor: "#007bff",
-    borderRadius: 8,
-  },
-  closeText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  image: {
+  container: { flexGrow: 1, padding: 20, backgroundColor: "#f8f9fa", alignItems: "center" },
+  questionText: { fontSize: 20, fontWeight: "bold", marginVertical: 20, textAlign: "center" },
+  image: { width: "100%", height: 200, resizeMode: "contain", marginBottom: 20, borderRadius: 10 },
+  choiceButton: {
+    padding: 15,
+    borderRadius: 10,
+    marginVertical: 8,
     width: "100%",
-    height: 200,
-    resizeMode: "contain",
-    marginVertical: 10,
-    borderRadius: 5,
-    backgroundColor: "#eaeaea",
   },
+  choiceText: { fontSize: 16, textAlign: "center" },
+  feedbackText: { fontSize: 18, marginTop: 20, fontWeight: "bold", color: "#333" },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginBottom: 15,
+  },
+  statsText: { fontSize: 16, fontWeight: "bold" },
 });

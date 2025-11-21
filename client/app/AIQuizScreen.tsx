@@ -54,17 +54,17 @@ const AIQuizScreen = () => {
     try {
       const response = await api.post<AIResponse>('/api/ai/ask', {
         prompt: `
-שאלה שהמשתמש עובר עליה במבחן:
-${question}
+        שאלה שהמשתמש עובר עליה במבחן:
+        ${question}
 
-אפשרויות:
-${parsedOptions.join(", ")}
+        אפשרויות:
+        ${parsedOptions.join(", ")}
 
-שאלה למורה הפרטי:
-${input}
+        שאלה למורה הפרטי:
+        ${input}
 
-ענה בצורה מנחה. אל תגלה פתרון מלא אלא אם המשתמש ביקש "תן תשובה".
-`
+        ענה בצורה מנחה. אל תגלה פתרון מלא אלא אם המשתמש ביקש "תן תשובה".
+        `
       });
 
       const answer = response.data.answer;
