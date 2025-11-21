@@ -34,7 +34,7 @@ export const API_ROUTES = {
   QUESTIONS: "/api/questions",
   RANDOM_QUESTION: "/api/questions/random",
   FULLTEST: {
-    SUBMIT: "/api/test",           // <--- POST למבחן מלא
+    SUBMIT: "/api/test/submit",
     HISTORY: "/api/test/history",
   },
 };
