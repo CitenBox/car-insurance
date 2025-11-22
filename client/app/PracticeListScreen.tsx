@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, useRouter } from "expo-router";
 import api from "../src/api/api";
 
 type ParsedQuestion = {
@@ -98,6 +100,24 @@ export default function PracticeScreen() {
       })}
 
       {feedback && <Text style={styles.feedbackText}>{feedback}</Text>}
+    
+      {/* AI Button */}
+<TouchableOpacity
+  style={styles.aiButton}
+  activeOpacity={0.7}
+  onPress={() =>
+    router.push({
+      pathname: '/AIQuizScreen',  // שם המסך שלך
+      params: {
+        question: currentQuestion?.question, // השאלה הנוכחית
+       options: JSON.stringify(currentQuestion?.choices || []), // האפשרויות
+      },
+    })
+  }
+>
+  <MaterialCommunityIcons name="robot" size={28} color="#fff" />
+  <Text style={styles.aiButtonText}>AI Chat</Text>
+</TouchableOpacity>
     </ScrollView>
   );
 }
@@ -121,4 +141,22 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   statsText: { fontSize: 16, fontWeight: "bold" },
+  aiButton: {
+  position: "absolute",
+  bottom: 30,
+  right: 20,
+  backgroundColor: "#007AFF",
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  borderRadius: 30,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  elevation: 5,
+},
+aiButtonText: {
+  color: "#fff",
+  fontSize: 14,
+  fontWeight: "600",
+},
 });

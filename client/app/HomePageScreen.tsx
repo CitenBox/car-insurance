@@ -29,7 +29,15 @@ export default function HomePageScreen() {
           activeOpacity={0.7}>
 
           <MaterialIcons name="question-answer" size={50} color="#007bff" />
-          <Text style={styles.buttonText}>תרגולות ושאלות</Text>
+          <Text style={styles.buttonText}>תרגילים</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/SelectTopic')}
+          activeOpacity={0.7}>
+
+          <MaterialIcons name="category" size={50} color="#007bff" />
+          <Text style={styles.buttonText}>מאגר שאלות</Text>
         </TouchableOpacity>
 
         {/* Full Test */}
@@ -49,7 +57,7 @@ export default function HomePageScreen() {
           activeOpacity={0.7}>
 
           <MaterialCommunityIcons name="history" size={50} color="#ff8800" />
-          <Text style={styles.buttonText}>Test History</Text>
+          <Text style={styles.buttonText}>היסטוריית מבחנים</Text>
         </TouchableOpacity>
 
       </View>
