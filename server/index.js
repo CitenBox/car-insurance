@@ -36,6 +36,9 @@ app.use("/api/test", require("./routes/FullTest"));
 // ⚡ ראוט ההיסטוריה החדש
 app.use("/api/test/history", require("./routes/history"));
 
+// למידה מתשובות שגויות - משוב AI
+app.use("/api/learn", require("./routes/learnMistakes"));
+
 // --- Start server ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {

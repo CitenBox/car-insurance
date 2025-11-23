@@ -60,6 +60,16 @@ export default function HomePageScreen() {
           <Text style={styles.buttonText}>היסטוריית מבחנים</Text>
         </TouchableOpacity>
 
+        {/* Learn from Mistakes */}
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/LearnFromMistakesScreen')}
+          activeOpacity={0.7}>
+
+          <MaterialCommunityIcons name="school" size={50} color="#dc3545" />
+          <Text style={styles.buttonText}>למידה בעזרת AI</Text>
+        </TouchableOpacity>
+
       </View>
 
       {/* AI Button */}

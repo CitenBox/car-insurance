@@ -1,7 +1,7 @@
 import axios from "axios";
 import { Platform } from "react-native";
 
-const LOCAL_IP = "192.168.1.106"; // כתובת ה-LAN שלך
+const LOCAL_IP = "192.168.56.1"; // כתובת ה-LAN שלך
 
 let BASE_URL = "";
 
