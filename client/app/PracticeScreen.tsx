@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import api from "../src/api/api";
+import api, { API_ROUTES, setAuthToken } from "../src/api/api";
 
 type ParsedQuestion = {
   question: string;
@@ -45,11 +45,12 @@ const PracticeScreen = () => {
   const [wrongCount, setWrongCount] = useState(0);
   const [answers, setAnswers] = useState<AnswerForDB[]>([]);
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
+  const [testFinished, setTestFinished] = useState(false); // ❗ חדש
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await api.get<Question[]>("/api/questions/all");
+      const res = await api.get<Question[]>(API_ROUTES.QUESTIONS + "/all");
       setData(res.data);
     } catch (err) {
       console.error(err);
@@ -61,6 +62,7 @@ const PracticeScreen = () => {
 
   const parseOptions = (html?: string) => {
     if (!html) return { options: [], correctAnswer: "", images: [] };
+
     const liMatches = html.match(/<li><span.*?>(.*?)<\/span><\/li>/g) || [];
     const options: string[] = liMatches.map(li => {
       const textMatch = li.match(/<span.*?>(.*?)<\/span>/);
@@ -80,14 +82,11 @@ const PracticeScreen = () => {
   };
 
   const generateQuestion = () => {
-    if (questionIndex >= TOTAL_QUESTIONS) {
-      finishTest();
-      return;
-    }
-    if (data.length === 0) return;
+    if (data.length === 0 || testFinished) return;
 
     const randomIndex = Math.floor(Math.random() * data.length);
     const record = data[randomIndex];
+
     const { options, correctAnswer, images } = parseOptions(record.description4);
     if (options.length === 0) return;
 
@@ -104,6 +103,8 @@ const PracticeScreen = () => {
   };
 
   const handleAnswer = (option: string) => {
+    if (testFinished) return; // ❌ לא מאפשר לבחור תשובה אחרי סיום
+
     setSelectedAnswer(option);
 
     if (currentQuestion) {
@@ -124,17 +125,19 @@ const PracticeScreen = () => {
     }
 
     setQuestionIndex(prev => prev + 1);
-    generateQuestion();
   };
 
   const finishTest = async () => {
+    if (testFinished) return; // ❌ מונע קריאה חוזרת
+    setTestFinished(true);
+
     const passed = wrongCount <= MAX_WRONG;
     const score = answers.filter(a => a.isCorrect).length;
     const totalQuestions = answers.length;
     const totalTime = TOTAL_TIME - timeLeft;
 
     try {
-      const res = await api.post("/api/fulltest/submit", {
+      const res = await api.post(API_ROUTES.FULLTEST.SUBMIT, {
         answers,
         score,
         totalQuestions,
@@ -149,19 +152,14 @@ const PracticeScreen = () => {
         pathname: "/TestSummaryScreen",
         params: {
           answers: JSON.stringify(answers),
-          passed: passed ? 'true' : 'false',
-          aiInsights: aiInsights || ''
+          passed: passed ? "true" : "false",
+          aiInsights: aiInsights || ""
         }
       });
     } catch (err) {
       console.error("Error sending test results:", err);
-      Alert.alert("שגיאה", "לא ניתן לשלוח את המבחן לשרת. בדוק את החיבור או את הנתיב.");
+      Alert.alert("שגיאה", "לא ניתן לשלוח את המבחן לשרת.");
     }
-
-    setCurrentQuestion(null);
-    setAnswers([]);
-    setQuestionIndex(0);
-    setWrongCount(0);
   };
 
   useEffect(() => {
@@ -169,8 +167,15 @@ const PracticeScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (data.length > 0) generateQuestion();
-  }, [data]);
+    if (data.length === 0 || testFinished) return;
+
+    if (questionIndex >= TOTAL_QUESTIONS) {
+      finishTest();
+      return;
+    }
+
+    generateQuestion();
+  }, [questionIndex, data, testFinished]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -197,7 +202,7 @@ const PracticeScreen = () => {
     return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
 
   if (!currentQuestion)
-    return <Text style={styles.message}>חושב על שאלות ...</Text>;
+    return <Text style={styles.message}>טוען שאלות...</Text>;
 
   const minutes = Math.floor(timeLeft / 60000);
   const seconds = Math.floor((timeLeft % 60000) / 1000);
@@ -207,7 +212,10 @@ const PracticeScreen = () => {
       <Text style={styles.questionNumber}>
         שאלה {questionIndex + 1} מתוך {TOTAL_QUESTIONS}
       </Text>
-      <Text style={styles.timer}>זמן נותר: {minutes}:{seconds < 10 ? `0${seconds}` : seconds}</Text>
+
+      <Text style={styles.timer}>
+        זמן נותר: {minutes}:{seconds < 10 ? `0${seconds}` : seconds}
+      </Text>
 
       <Text style={styles.title}>בחר את התשובה הנכונה:</Text>
       <Text style={styles.question}>{currentQuestion.question}</Text>
@@ -230,15 +238,82 @@ const PracticeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: "center", backgroundColor: "#f7f7f7" },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
-  question: { fontSize: 18, marginBottom: 15, textAlign: "center" },
-  option: { borderWidth: 1, borderColor: "#ccc", borderRadius: 5, padding: 15, marginVertical: 8 },
-  optionText: { fontSize: 16, textAlign: "center" },
-  message: { textAlign: "center", marginTop: 50, fontSize: 16 },
-  questionNumber: { fontSize: 16, marginBottom: 5, textAlign: "center", color: "#333" },
-  timer: { fontSize: 16, textAlign: "center", color: "#ff0000", marginBottom: 10 },
-  image: { width: "100%", height: 200, resizeMode: "contain", marginVertical: 10, borderRadius: 5, backgroundColor: "#eaeaea" },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#f0f4f8",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 15,
+    textAlign: "center",
+    color: "#1f2937",
+  },
+  questionNumber: {
+    fontSize: 16,
+    fontWeight: "500",
+    textAlign: "center",
+    color: "#4b5563",
+    marginBottom: 8,
+  },
+  timer: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#ef4444", // אדום ברור
+    fontWeight: "600",
+    marginBottom: 15,
+  },
+  question: {
+    fontSize: 20,
+    fontWeight: "500",
+    marginBottom: 20,
+    textAlign: "center",
+    color: "#111827",
+  },
+  option: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2, // אפקט הצללה באנדרואיד
+  },
+  optionText: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#1f2937",
+    fontWeight: "500",
+  },
+  optionSelected: {
+    backgroundColor: "#2563eb",
+    borderColor: "#2563eb",
+  },
+  optionSelectedText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  message: {
+    textAlign: "center",
+    marginTop: 50,
+    fontSize: 16,
+    color: "#6b7280",
+  },
+  image: {
+    width: "100%",
+    height: 220,
+    resizeMode: "contain",
+    marginVertical: 15,
+    borderRadius: 12,
+    backgroundColor: "#e5e7eb",
+  },
 });
+
 
 export default PracticeScreen;
