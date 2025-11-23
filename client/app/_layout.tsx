@@ -1,9 +1,11 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { AuthProvider, AuthContext } from '../src/context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
+import LottieWrapper from '../src/components/LottieWrapper';
 
+// ----------------- Custom Drawer Content -----------------
 function CustomDrawerContent({ navigation }: any) {
   const { logout, user } = useContext(AuthContext);
 
@@ -13,7 +15,7 @@ function CustomDrawerContent({ navigation }: any) {
         <>
           <Text style={styles.userName}>Welcome, {user.username}!</Text>
 
-          {/* כפתור Home */}
+          {/* Home */}
           <TouchableOpacity
             style={styles.drawerButton}
             activeOpacity={0.7}
@@ -23,7 +25,7 @@ function CustomDrawerContent({ navigation }: any) {
             <Text style={styles.buttonText}>Home</Text>
           </TouchableOpacity>
 
-          {/* כפתור פרופיל */}
+          {/* Profile */}
           <TouchableOpacity
             style={styles.drawerButton}
             activeOpacity={0.7}
@@ -33,7 +35,7 @@ function CustomDrawerContent({ navigation }: any) {
             <Text style={styles.buttonText}>Profile</Text>
           </TouchableOpacity>
 
-          {/* כפתור Logout בתחתית */}
+          {/* Logout */}
           <TouchableOpacity
             style={[styles.logoutButton, { marginTop: 'auto' }]}
             activeOpacity={0.7}
@@ -47,59 +49,101 @@ function CustomDrawerContent({ navigation }: any) {
           </TouchableOpacity>
         </>
       ) : (
-        <>
-          {/* משתמש לא מחובר - מציג רק Login */}
-          <TouchableOpacity
-            style={[styles.drawerButton, { marginTop: 50 }]}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('LoginScreen')}
-          >
-            <MaterialIcons name="login" size={22} color="#007bff" />
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableOpacity>
-        </>
+        <TouchableOpacity
+          style={[styles.drawerButton, { marginTop: 50 }]}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('LoginScreen')}
+        >
+          <MaterialIcons name="login" size={22} color="#007bff" />
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
 }
 
+// ----------------- App Navigator -----------------
+function AppNavigator() {
+  const { user, loadingAuthState } = useContext(AuthContext);
+
+  const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const [minimumTimePassed, setMinimumTimePassed] = useState(false);
+
+  // זמן מינימלי — 1.5 שניות
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinimumTimePassed(true);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // קביעת מסך פתיחה
+  useEffect(() => {
+    if (!loadingAuthState && minimumTimePassed) {
+      setInitialRoute(user ? 'HomePageScreen' : 'LoginScreen');
+    }
+  }, [user, loadingAuthState, minimumTimePassed]);
+
+  // טעינה (לוטי / אינדיקטור)
+  if (!minimumTimePassed || loadingAuthState || !initialRoute) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LottieWrapper
+          source={require('../assets/driving.json')}
+        //   source={require('../src/navigation/lottie/loading.json')}
+
+          style={{ width: 430, height: 430 }}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <Drawer
+      initialRouteName={initialRoute}
+      screenOptions={{
+        headerShown: true,
+        drawerPosition: 'right',
+        drawerStyle: {
+          backgroundColor: '#f8f9fa',
+          width: 260,
+          paddingVertical: 30,
+        },
+        headerTitle: '',
+      }}
+      drawerContent={(props) => (
+        <>
+          <TouchableOpacity
+            onPress={() => props.navigation.toggleDrawer()}
+            style={{ position: 'absolute', top: 15, right: 15, zIndex: 1000 }}
+          >
+            <MaterialIcons name="menu" size={28} color="#212529" />
+          </TouchableOpacity>
+
+          <CustomDrawerContent {...props} />
+        </>
+      )}
+    >
+      <Drawer.Screen name="HomePageScreen" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ProfileScreen" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="LoginScreen" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="SignupScreen" options={{ drawerItemStyle: { display: 'none' } }} />
+      <Drawer.Screen name="ForgotPasswordScreen" options={{ drawerItemStyle: { display: 'none' } }} />
+    </Drawer>
+  );
+}
+
+// ----------------- Root Layout -----------------
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Drawer
-        screenOptions={{
-          headerShown: true,
-          drawerPosition: 'right',
-          drawerStyle: {
-            backgroundColor: '#f8f9fa',
-            width: 260,
-            paddingVertical: 30,
-          },
-          headerTitle: '',
-        }}
-        drawerContent={(props) => (
-          <>
-            <TouchableOpacity
-              onPress={() => props.navigation.toggleDrawer()} 
-              style={{ position: 'absolute', top: 15, right: 15, zIndex: 1000 }}
-            >
-              <MaterialIcons name="menu" size={28} color="#212529" />
-            </TouchableOpacity>
-
-            <CustomDrawerContent {...props} />
-          </>
-        )}
-      >
-        <Drawer.Screen name="HomePageScreen" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="ProfileScreen" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="LoginScreen" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="SignupScreen" options={{ drawerItemStyle: { display: 'none' } }} />
-        <Drawer.Screen name="ForgotPasswordScreen" options={{ drawerItemStyle: { display: 'none' } }} />
-      </Drawer>
+      <AppNavigator />
     </AuthProvider>
   );
 }
 
+// ----------------- Styles -----------------
 const styles = StyleSheet.create({
   drawerContainer: {
     flex: 1,
@@ -138,5 +182,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     marginLeft: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
 });

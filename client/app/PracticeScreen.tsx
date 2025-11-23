@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import api, { API_ROUTES, setAuthToken } from "../src/api/api";
+import api, { API_ROUTES } from "../src/api/api";
+import LottieWrapper from "../src/components/LottieWrapper"; // ✔ לוטי לכל הפלטפורמות
 
 type ParsedQuestion = {
   question: string;
@@ -45,7 +46,10 @@ const PracticeScreen = () => {
   const [wrongCount, setWrongCount] = useState(0);
   const [answers, setAnswers] = useState<AnswerForDB[]>([]);
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
-  const [testFinished, setTestFinished] = useState(false); // ❗ חדש
+  const [testFinished, setTestFinished] = useState(false);
+
+  // ✔ חדש — מצב הצגת לוטי
+  const [showLottieFinish, setShowLottieFinish] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -103,7 +107,7 @@ const PracticeScreen = () => {
   };
 
   const handleAnswer = (option: string) => {
-    if (testFinished) return; // ❌ לא מאפשר לבחור תשובה אחרי סיום
+    if (testFinished) return;
 
     setSelectedAnswer(option);
 
@@ -128,8 +132,11 @@ const PracticeScreen = () => {
   };
 
   const finishTest = async () => {
-    if (testFinished) return; // ❌ מונע קריאה חוזרת
+    if (testFinished) return;
     setTestFinished(true);
+
+    // ✔ הצגת מסך הלוטי
+    setShowLottieFinish(true);
 
     const passed = wrongCount <= MAX_WRONG;
     const score = answers.filter(a => a.isCorrect).length;
@@ -148,23 +155,24 @@ const PracticeScreen = () => {
 
       const { aiInsights } = res.data || {};
 
-      router.push({
-        pathname: "/TestSummaryScreen",
-        params: {
-          answers: JSON.stringify(answers),
-          passed: passed ? "true" : "false",
-          aiInsights: aiInsights || ""
-        }
-      });
+      // ✔ מחכה שהאנימציה תרוץ 2.5 שניות
+      setTimeout(() => {
+        router.push({
+          pathname: "/TestSummaryScreen",
+          params: {
+            answers: JSON.stringify(answers),
+            passed: passed ? "true" : "false",
+            aiInsights: aiInsights || ""
+          }
+        });
+      }, 2500);
     } catch (err) {
       console.error("Error sending test results:", err);
       Alert.alert("שגיאה", "לא ניתן לשלוח את המבחן לשרת.");
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
     if (data.length === 0 || testFinished) return;
@@ -186,17 +194,25 @@ const PracticeScreen = () => {
           return 0;
         }
 
-        if (prev <= 5 * 60 * 1000 && prev % 60000 < 1000) {
-          const minutesLeft = Math.ceil(prev / 60000);
-          Alert.alert("התראה", `נותרו ${minutesLeft} דקות למבחן`);
-        }
-
         return prev - 1000;
       });
     }, 1000);
 
     return () => clearInterval(interval);
   }, []);
+
+  // ✔ מסך לוטי בזמן סיום המבחן
+  if (showLottieFinish) {
+    return (
+      <View style={styles.lottieContainer}>
+        <LottieWrapper
+          source={require('../assets/driving.json')}
+          style={{ width: 250, height: 250 }}
+        />
+        <Text style={styles.loadingText}>מעבד את התוצאות...</Text>
+      </View>
+    );
+  }
 
   if (loading)
     return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
@@ -238,11 +254,21 @@ const PracticeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, padding: 20, backgroundColor: "#f0f4f8" },
+
+  lottieContainer: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f0f4f8",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
   },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#333",
+  },
+
   title: {
     fontSize: 24,
     fontWeight: "700",
@@ -260,7 +286,7 @@ const styles = StyleSheet.create({
   timer: {
     fontSize: 16,
     textAlign: "center",
-    color: "#ef4444", // אדום ברור
+    color: "#ef4444",
     fontWeight: "600",
     marginBottom: 15,
   },
@@ -283,21 +309,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 2, // אפקט הצללה באנדרואיד
+    elevation: 2,
   },
   optionText: {
     fontSize: 16,
     textAlign: "center",
     color: "#1f2937",
     fontWeight: "500",
-  },
-  optionSelected: {
-    backgroundColor: "#2563eb",
-    borderColor: "#2563eb",
-  },
-  optionSelectedText: {
-    color: "#fff",
-    fontWeight: "600",
   },
   message: {
     textAlign: "center",
@@ -314,6 +332,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#e5e7eb",
   },
 });
-
 
 export default PracticeScreen;
