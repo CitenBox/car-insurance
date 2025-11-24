@@ -4,19 +4,20 @@ const User = require("../models/User");
 const { protect } = require("../middleware/authMiddleware");
 
 // GET /api/test/history
-// מחזיר את כל המבחנים של המשתמש המחובר
-// אפשרות לסינון לפי תאריך והצלחה/כישלון
+// מחזיר את כל המבחנים של המשתמש המחובר או משתמש אחר (אם מסופק userId)
 router.get("/", protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const { userId, status, from, to } = req.query;
+
+    // אם userId לא מסופק, נשתמש במשתמש המחובר
+    const targetUserId = userId || req.user._id;
+
+    const user = await User.findById(targetUserId);
     if (!user) return res.status(404).json({ message: "משתמש לא נמצא" });
 
     let tests = [...user.test];
 
     // --- סינון לפי הצלחה/כישלון ---
-    // ?status=passed או ?status=failed
-    const { status, from, to } = req.query;
-
     if (status === "passed") {
       tests = tests.filter(t => t.passed === true);
     } else if (status === "failed") {
@@ -24,7 +25,6 @@ router.get("/", protect, async (req, res) => {
     }
 
     // --- סינון לפי תאריכים ---
-    // ?from=YYYY-MM-DD&to=YYYY-MM-DD
     const fromDate = from ? new Date(from) : new Date(0);
     const toDate = to ? new Date(to) : new Date();
 

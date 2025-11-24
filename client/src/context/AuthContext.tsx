@@ -8,12 +8,13 @@ export interface IUserWithPoints extends IUser {
   points?: number; // נקודות המשתמש, אופציונלי
 }
 
-// הגדרת סוגי ההקשר כולל updatePoints
+// הגדרת סוגי ההקשר כולל updatePoints ו-loadingAuthState
 interface AuthContextProps {
   user: IUserWithPoints | null;
   login: (token: string, user: IUserWithPoints) => Promise<void>;
   logout: () => Promise<void>;
   updatePoints?: (points: number) => void;
+  loadingAuthState: boolean; // מצב טעינה של המשתמש
 }
 
 // יצירת הקשר עם ערכי ברירת מחדל
@@ -22,20 +23,28 @@ export const AuthContext = createContext<AuthContextProps>({
   login: async () => {},
   logout: async () => {},
   updatePoints: () => {},
+  loadingAuthState: true,
 });
 
 // ספק ההקשר שמנהל את מצב האותנטיקציה והטוקן
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<IUserWithPoints | null>(null);
+  const [loadingAuthState, setLoadingAuthState] = useState(true); // מצב טעינה בתחילת הריצה
 
   // טוען אוטומטית Token ומידע משתמש מהאחסון
   useEffect(() => {
     const loadUser = async () => {
-      const token = await AsyncStorage.getItem('token');
-      const userData = await AsyncStorage.getItem('user');
+      try {
+        const token = await AsyncStorage.getItem('token');
+        const userData = await AsyncStorage.getItem('user');
 
-      if (token) setAuthToken(token);
-      if (userData) setUser(JSON.parse(userData));
+        if (token) setAuthToken(token);
+        if (userData) setUser(JSON.parse(userData));
+      } catch (error) {
+        console.error('Error loading user from storage:', error);
+      } finally {
+        setLoadingAuthState(false); // סיום טעינה
+      }
     };
 
     loadUser();
@@ -69,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updatePoints }}>
+    <AuthContext.Provider value={{ user, login, logout, updatePoints, loadingAuthState }}>
       {children}
     </AuthContext.Provider>
   );

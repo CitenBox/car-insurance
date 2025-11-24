@@ -1,24 +1,43 @@
 import axios from "axios";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-const LOCAL_IP = "192.168.56.1"; // כתובת ה-LAN שלך
+// כתובת ה-IP של המחשב שלכם ברשת המקומית
+const LOCAL_IP = "192.168.10.55";
 
-let BASE_URL = "";
+// פונקציה לקביעת Base URL לפי פלטפורמה וסביבה
+const getBaseURL = () => {
+  const isDevice =
+    Constants.executionEnvironment === "standalone" ||
+    Constants.executionEnvironment === "storeClient";
 
-if (Platform.OS === "android") {
-  BASE_URL = "http://10.0.2.2:3000";
-} else if (Platform.OS === "ios" || Platform.OS === "web") {
-  BASE_URL = "http://localhost:3000";
-} else {
-  BASE_URL = `http://${LOCAL_IP}:3000`;
-}
+  if (Platform.OS === "android" && !isDevice) {
+    // Android Emulator
+    return "http://10.0.2.2:3000";
+  }
 
+  if (Platform.OS === "ios" && !isDevice) {
+    // iOS Simulator
+    return "http://localhost:3000";
+  }
+
+  if (Platform.OS === "web") {
+    return "http://localhost:3000";
+  }
+
+  // Android/iOS physical device
+  return `http://${LOCAL_IP}:3000`;
+};
+
+const BASE_URL = getBaseURL();
+
+// יצירת Axios instance
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
 
-// פונקציה להוספה/הסרה של Authorization token
+// פונקציה להוספת/הסרת Authorization token
 export const setAuthToken = (token: string | null) => {
   if (token) {
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -27,7 +46,7 @@ export const setAuthToken = (token: string | null) => {
   }
 };
 
-// Routes מותאמים ל-backend
+// מסלולים מובנים ל-backend
 export const API_ROUTES = {
   AUTH: "/api/auth",
   AI_ASK: "/api/ai/ask",
