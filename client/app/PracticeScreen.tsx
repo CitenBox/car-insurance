@@ -11,13 +11,14 @@ import {
 } from "react-native";
 import api from "../src/api/api";
 
+    //יוצרים types למספר השאלות ולתשובות המשתמש
 type ParsedQuestion = {
   question: string;
   options: string[];
   correctAnswer: string;
   images?: string[];
 };
-
+    //ניצור type לתשובות עבור מסד הנתונים
 type AnswerForDB = {
   questionid: number;
   questionText: string;
@@ -25,13 +26,13 @@ type AnswerForDB = {
   correctAnswer: string;
   isCorrect: boolean;
 };
-
+    // ניצור type לשאלות מהשרת
 type Question = {
   id: string;
   title2: string;
   description4: string;
 };
-
+      
 const TOTAL_QUESTIONS = 30;
 const MAX_WRONG = 4;
 const TOTAL_TIME = 40 * 60 * 1000;
