@@ -56,6 +56,7 @@ export const API_ROUTES = {
     SUBMIT: "/api/test/submit",
     HISTORY: "/api/test/history",
   },
+  GET_USER_POINTS: "/api/user-points",
 };
 
 export default api;

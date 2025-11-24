@@ -7,17 +7,19 @@ import { AuthContext } from '../src/context/AuthContext';
 export default function HomePageScreen() {
   const router = useRouter();
   const { user, logout } = useContext(AuthContext);
+  console.log("User:", user);
 
   return (
     <View style={styles.container}>
       {/* Welcome */}
       <Text style={styles.title}>Welcome, {user?.username || 'User'}!</Text>
 
-      {/* Points */}
-      <View style={styles.pointsContainer}>
-        <Text style={styles.pointsLabel}>Your Points:</Text>
-        <Text style={styles.pointsValue}>{user?.points || 0}</Text>
-      </View>
+     {/* Points */}
+<View style={styles.pointsContainer}>
+  <Text style={styles.pointsLabel}>Your Points:</Text>
+  <Text style={styles.pointsValue}>{user?.userPoints || 0}</Text>
+</View>
+
 
       {/* Buttons */}
       <View style={styles.buttonsContainer}>

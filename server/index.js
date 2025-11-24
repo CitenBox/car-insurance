@@ -2,6 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db");
+const userPointsRoute = require("./routes/points");
 
 // --- Load environment variables ---
 dotenv.config();
@@ -35,6 +36,9 @@ app.use("/api/test", require("./routes/FullTest"));
 // היסטוריית מבחנים לכל משתמש
 // ⚡ ראוט ההיסטוריה החדש
 app.use("/api/test/history", require("./routes/history"));
+
+// נקודות משתמש
+app.use("/api/user-points", userPointsRoute);
 
 // למידה מתשובות שגויות - משוב AI
 app.use("/api/learn", require("./routes/learnMistakes"));
