@@ -76,11 +76,12 @@ export default function TopicScreen() {
 
     // אם אין שאלה ב-HTML אך יש כותרת, נשתמש בכותרת כתוכן
     if (!parsed.question && item.title2) {
-      setSelectedQuestion({
-        question: item.title2,
-        correctAnswer: "",
-        images: parsed.images?.length ? parsed.images : [require("../assets/images/logo.png")],
-      });
+     setSelectedQuestion({
+    question: parsed.question || item.title2 || "אין שאלה",
+    correctAnswer: parsed.correctAnswer || "",
+    images: parsed.images?.length ? parsed.images : [require("../assets/images/logo.png")],
+  });
+
     } else {
       // אם אין תמונה בכלל, נשים לוגו ברירת מחדל
       if (!parsed.images?.length) parsed.images = [require("../assets/images/logo.png")];
