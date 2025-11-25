@@ -7,19 +7,19 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  ScrollView
 } from "react-native";
 import api, { API_ROUTES } from "../src/api/api";
-import LottieWrapper from "../src/components/LottieWrapper"; // ✔ לוטי לכל הפלטפורמות
+import LottieWrapper from "../src/components/LottieWrapper";
 
-    //יוצרים types למספר השאלות ולתשובות המשתמש
 type ParsedQuestion = {
   question: string;
   options: string[];
   correctAnswer: string;
   images?: string[];
 };
-    //ניצור type לתשובות עבור מסד הנתונים
+
 type AnswerForDB = {
   questionid: number;
   questionText: string;
@@ -27,13 +27,13 @@ type AnswerForDB = {
   correctAnswer: string;
   isCorrect: boolean;
 };
-    // ניצור type לשאלות מהשרת
+
 type Question = {
   id: string;
   title2: string;
   description4: string;
 };
-      
+
 const TOTAL_QUESTIONS = 30;
 const MAX_WRONG = 4;
 const TOTAL_TIME = 40 * 60 * 1000;
@@ -48,8 +48,6 @@ const PracticeScreen = () => {
   const [answers, setAnswers] = useState<AnswerForDB[]>([]);
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
   const [testFinished, setTestFinished] = useState(false);
-
-  // ✔ חדש — מצב הצגת לוטי
   const [showLottieFinish, setShowLottieFinish] = useState(false);
 
   const fetchData = async () => {
@@ -67,34 +65,27 @@ const PracticeScreen = () => {
 
   const parseOptions = (html?: string) => {
     if (!html) return { options: [], correctAnswer: "", images: [] };
-
     const liMatches = html.match(/<li><span.*?>(.*?)<\/span><\/li>/g) || [];
     const options: string[] = liMatches.map(li => {
       const textMatch = li.match(/<span.*?>(.*?)<\/span>/);
       return textMatch ? textMatch[1] : "";
     });
-
     const correctMatch = html.match(/<span id="correctAnswer.*?">(.*?)<\/span>/);
     const correctAnswer = correctMatch ? correctMatch[1] : options[0] || "";
-
     const imgMatches = html.match(/<img.*?src="(.*?)".*?>/g) || [];
     const images = imgMatches.map(img => {
       const srcMatch = img.match(/src="(.*?)"/);
       return srcMatch ? srcMatch[1] : "";
     });
-
     return { options, correctAnswer, images };
   };
 
-  const generateQuestion = () => {
+  const generateQuestion = (index: number) => {
     if (data.length === 0 || testFinished) return;
 
-    const randomIndex = Math.floor(Math.random() * data.length);
-    const record = data[randomIndex];
-
+    const record = data[index % data.length];
     const { options, correctAnswer, images } = parseOptions(record.description4);
     if (options.length === 0) return;
-
     const shuffledOptions = options.sort(() => Math.random() - 0.5);
 
     setCurrentQuestion({
@@ -104,7 +95,8 @@ const PracticeScreen = () => {
       images,
     });
 
-    setSelectedAnswer(null);
+    const existingAnswer = answers[index];
+    setSelectedAnswer(existingAnswer ? existingAnswer.userAnswer : null);
   };
 
   const handleAnswer = (option: string) => {
@@ -112,78 +104,83 @@ const PracticeScreen = () => {
 
     setSelectedAnswer(option);
 
-    if (currentQuestion) {
-      setAnswers(prev => [
-        ...prev,
-        {
-          questionid: questionIndex + 1,
-          questionText: currentQuestion.question,
-          userAnswer: option,
-          correctAnswer: currentQuestion.correctAnswer,
-          isCorrect: option === currentQuestion.correctAnswer
-        }
-      ]);
-    }
+    setAnswers(prev => {
+      const newAnswers = [...prev];
+      newAnswers[questionIndex] = {
+        questionid: questionIndex + 1,
+        questionText: currentQuestion?.question || "",
+        userAnswer: option,
+        correctAnswer: currentQuestion?.correctAnswer || "",
+        isCorrect: option === currentQuestion?.correctAnswer
+      };
+      return newAnswers;
+    });
 
     if (option !== currentQuestion?.correctAnswer) {
       setWrongCount(prev => prev + 1);
     }
+  };
 
-    setQuestionIndex(prev => prev + 1);
+  const goToPreviousQuestion = () => {
+    if (questionIndex > 0) {
+      setQuestionIndex(prev => prev - 1);
+    }
+  };
+
+  const goToNextQuestion = () => {
+    if (questionIndex < TOTAL_QUESTIONS - 1) {
+      setQuestionIndex(prev => prev + 1);
+    } else {
+      finishTest();
+    }
   };
 
   const finishTest = async () => {
-    if (testFinished) return;
-    setTestFinished(true);
+  if (testFinished) return;
+  setTestFinished(true);
+  setShowLottieFinish(true);
 
-    // ✔ הצגת מסך הלוטי
-    setShowLottieFinish(true);
+  const answered = answers.filter(a => a !== undefined);
 
-    const passed = wrongCount <= MAX_WRONG;
-    const score = answers.filter(a => a.isCorrect).length;
-    const totalQuestions = answers.length;
-    const totalTime = TOTAL_TIME - timeLeft;
+  const passed = wrongCount <= MAX_WRONG;
+  const score = answered.filter(a => a.isCorrect).length;
+  const totalQuestions = answered.length;
+  const totalTime = TOTAL_TIME - timeLeft;
 
-    try {
-      const res = await api.post(API_ROUTES.FULLTEST.SUBMIT, {
-        answers,
-        score,
-        totalQuestions,
-        wrongAnswers: wrongCount,
-        timeTaken: totalTime,
-        improvements: []
+  try {
+    const res = await api.post(API_ROUTES.FULLTEST.SUBMIT, {
+      answers: answered,
+      score,
+      totalQuestions,
+      wrongAnswers: wrongCount,
+      timeTaken: totalTime,
+      improvements: []
+    });
+
+    const { aiInsights } = res.data || {};
+
+    setTimeout(() => {
+      router.push({
+        pathname: "/TestSummaryScreen",
+        params: {
+          answers: JSON.stringify(answered),
+          passed: passed ? "true" : "false",
+          aiInsights: aiInsights || ""
+        }
       });
+    }, 2500);
+  } catch (err) {
+    console.error("Error sending test results:", err);
+    Alert.alert("שגיאה", "לא ניתן לשלוח את המבחן לשרת.");
+  }
+    };
 
-      const { aiInsights } = res.data || {};
-
-      // ✔ מחכה שהאנימציה תרוץ 2.5 שניות
-      setTimeout(() => {
-        router.push({
-          pathname: "/TestSummaryScreen",
-          params: {
-            answers: JSON.stringify(answers),
-            passed: passed ? "true" : "false",
-            aiInsights: aiInsights || ""
-          }
-        });
-      }, 2500);
-    } catch (err) {
-      console.error("Error sending test results:", err);
-      Alert.alert("שגיאה", "לא ניתן לשלוח את המבחן לשרת.");
-    }
-  };
 
   useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
     if (data.length === 0 || testFinished) return;
-
-    if (questionIndex >= TOTAL_QUESTIONS) {
-      finishTest();
-      return;
-    }
-
-    generateQuestion();
+    generateQuestion(questionIndex);
   }, [questionIndex, data, testFinished]);
 
   useEffect(() => {
@@ -194,15 +191,12 @@ const PracticeScreen = () => {
           finishTest();
           return 0;
         }
-
         return prev - 1000;
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
-  // ✔ מסך לוטי בזמן סיום המבחן
   if (showLottieFinish) {
     return (
       <View style={styles.lottieContainer}>
@@ -215,17 +209,14 @@ const PracticeScreen = () => {
     );
   }
 
-  if (loading)
-    return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
-
-  if (!currentQuestion)
-    return <Text style={styles.message}>טוען שאלות...</Text>;
+  if (loading) return <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />;
+  if (!currentQuestion) return <Text style={styles.message}>טוען שאלות...</Text>;
 
   const minutes = Math.floor(timeLeft / 60000);
   const seconds = Math.floor((timeLeft % 60000) / 1000);
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
       <Text style={styles.questionNumber}>
         שאלה {questionIndex + 1} מתוך {TOTAL_QUESTIONS}
       </Text>
@@ -244,13 +235,32 @@ const PracticeScreen = () => {
       {currentQuestion.options.map((option, index) => (
         <TouchableOpacity
           key={`${option}-${index}`}
-          style={styles.option}
+          style={[
+            styles.option,
+            selectedAnswer === option && { backgroundColor: "#d1e7ff" }
+          ]}
           onPress={() => handleAnswer(option)}
         >
           <Text style={styles.optionText}>{option}</Text>
         </TouchableOpacity>
       ))}
-    </View>
+
+      <View style={styles.navigationButtons}>
+        <TouchableOpacity
+          style={[styles.navButton, questionIndex === 0 && { opacity: 0.5 }]}
+          disabled={questionIndex === 0}
+          onPress={goToPreviousQuestion}
+        >
+          <Text style={styles.navButtonText}>שאלה קודמת</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navButton} onPress={goToNextQuestion}>
+          <Text style={styles.navButtonText}>
+            {questionIndex === TOTAL_QUESTIONS - 1 ? "סיים" : "שאלה הבאה"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
 
@@ -331,6 +341,22 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     borderRadius: 12,
     backgroundColor: "#e5e7eb",
+  },
+  navigationButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  navButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  navButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
