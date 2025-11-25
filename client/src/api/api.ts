@@ -51,6 +51,7 @@ export const API_ROUTES = {
   AUTH: "/api/auth",
   AI_ASK: "/api/ai/ask",
   QUESTIONS: "/api/questions",
+  QUESTIONS_BY_LICENSE: (type: string) => `/api/questions/by-license/${type}`, // 🚀 חדש
   RANDOM_QUESTION: "/api/questions/random",
   FULLTEST: {
     SUBMIT: "/api/test/submit",

@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -10,8 +10,8 @@ import {
   View,
   ScrollView
 } from "react-native";
-import api, { API_ROUTES } from "../src/api/api";
 import LottieWrapper from "../src/components/LottieWrapper";
+import api, { API_ROUTES } from "../src/api/api";
 
 type ParsedQuestion = {
   question: string;
@@ -29,7 +29,7 @@ type AnswerForDB = {
 };
 
 type Question = {
-  id: string;
+  _id?: string;
   title2: string;
   description4: string;
 };
@@ -38,7 +38,48 @@ const TOTAL_QUESTIONS = 30;
 const MAX_WRONG = 4;
 const TOTAL_TIME = 40 * 60 * 1000;
 
+/* ------------------ HELPER: ערבוב מערך ------------------ */
+const shuffleArray = <T,>(arr: T[]): T[] => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+/* ------------------ HELPER: חילוץ סוגי רישיון ------------------ */
+const extractCategories = (html?: string): string[] => {
+  if (!html) return [];
+  const matches = html.match(/«(.*?)»/g) || [];
+  return matches.map(m => m.replace(/«|»/g, ""));
+};
+
+/* ------------------ HELPER: חילוץ אופציות ותשובה נכונה ------------------ */
+const parseOptions = (html?: string) => {
+  if (!html) return { options: [], correctAnswer: "", images: [] };
+
+  const liMatches = html.match(/<li><span.*?>(.*?)<\/span><\/li>/g) || [];
+  const options = liMatches.map(li => {
+    const textMatch = li.match(/<span.*?>(.*?)<\/span>/);
+    return textMatch ? textMatch[1] : "";
+  });
+
+  const correctMatch = html.match(/<span id="correctAnswer.*?">(.*?)<\/span>/);
+  const correctAnswer = correctMatch ? correctMatch[1] : options[0] || "";
+
+  const imgMatches = html.match(/<img.*?src="(.*?)".*?>/g) || [];
+  const images = imgMatches.map(img => {
+    const srcMatch = img.match(/src="(.*?)"/);
+    return srcMatch ? srcMatch[1] : "";
+  });
+
+  return { options, correctAnswer, images };
+};
+
+/* ------------------ MAIN SCREEN ------------------ */
 const PracticeScreen = () => {
+  const { licenseType } = useLocalSearchParams<{ licenseType: string }>();
   const [data, setData] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<ParsedQuestion | null>(null);
@@ -50,70 +91,72 @@ const PracticeScreen = () => {
   const [testFinished, setTestFinished] = useState(false);
   const [showLottieFinish, setShowLottieFinish] = useState(false);
 
+  /* ------------------ שליפת שאלות מה־API ------------------ */
   const fetchData = async () => {
+    if (!licenseType) {
+      Alert.alert("שגיאה", "לא נבחר סוג תיאוריה");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await api.get<Question[]>(API_ROUTES.QUESTIONS + "/all");
-      setData(res.data);
+      const response = await api.get(API_ROUTES.QUESTIONS_BY_LICENSE(licenseType));
+      let records: Question[] = response.data || [];
+
+      if (records.length === 0) {
+        Alert.alert("אין שאלות", `לא נמצאו שאלות לסוג רישיון ${licenseType}`);
+      }
+
+      // מערבב את השאלות לפני החזרה ומגביל ל־TOTAL_QUESTIONS
+      records = shuffleArray(records).slice(0, TOTAL_QUESTIONS);
+      setData(records);
     } catch (err) {
-      console.error(err);
+      console.error("API ERROR:", err);
       Alert.alert("שגיאה", "לא ניתן לטעון את השאלות מהשרת");
     } finally {
       setLoading(false);
     }
   };
 
-  const parseOptions = (html?: string) => {
-    if (!html) return { options: [], correctAnswer: "", images: [] };
-    const liMatches = html.match(/<li><span.*?>(.*?)<\/span><\/li>/g) || [];
-    const options: string[] = liMatches.map(li => {
-      const textMatch = li.match(/<span.*?>(.*?)<\/span>/);
-      return textMatch ? textMatch[1] : "";
-    });
-    const correctMatch = html.match(/<span id="correctAnswer.*?">(.*?)<\/span>/);
-    const correctAnswer = correctMatch ? correctMatch[1] : options[0] || "";
-    const imgMatches = html.match(/<img.*?src="(.*?)".*?>/g) || [];
-    const images = imgMatches.map(img => {
-      const srcMatch = img.match(/src="(.*?)"/);
-      return srcMatch ? srcMatch[1] : "";
-    });
-    return { options, correctAnswer, images };
-  };
-
+  /* ------------------ יצירת שאלה ------------------ */
   const generateQuestion = (index: number) => {
     if (data.length === 0 || testFinished) return;
 
-    const record = data[index % data.length];
+    const record = data[index];
     const { options, correctAnswer, images } = parseOptions(record.description4);
+
     if (options.length === 0) return;
-    const shuffledOptions = options.sort(() => Math.random() - 0.5);
+
+    // מערבב את אפשרויות התשובה
+    const shuffledOptions = shuffleArray(options);
 
     setCurrentQuestion({
       question: record.title2 || "שאלה ללא כותרת",
       options: shuffledOptions,
       correctAnswer,
-      images,
+      images
     });
 
     const existingAnswer = answers[index];
     setSelectedAnswer(existingAnswer ? existingAnswer.userAnswer : null);
   };
 
+  /* ------------------ ניהול תשובות ------------------ */
   const handleAnswer = (option: string) => {
     if (testFinished) return;
 
     setSelectedAnswer(option);
 
     setAnswers(prev => {
-      const newAnswers = [...prev];
-      newAnswers[questionIndex] = {
+      const newArr = [...prev];
+      newArr[questionIndex] = {
         questionid: questionIndex + 1,
         questionText: currentQuestion?.question || "",
         userAnswer: option,
         correctAnswer: currentQuestion?.correctAnswer || "",
         isCorrect: option === currentQuestion?.correctAnswer
       };
-      return newAnswers;
+      return newArr;
     });
 
     if (option !== currentQuestion?.correctAnswer) {
@@ -122,9 +165,7 @@ const PracticeScreen = () => {
   };
 
   const goToPreviousQuestion = () => {
-    if (questionIndex > 0) {
-      setQuestionIndex(prev => prev - 1);
-    }
+    if (questionIndex > 0) setQuestionIndex(prev => prev - 1);
   };
 
   const goToNextQuestion = () => {
@@ -135,29 +176,14 @@ const PracticeScreen = () => {
     }
   };
 
-  const finishTest = async () => {
-  if (testFinished) return;
-  setTestFinished(true);
-  setShowLottieFinish(true);
+  const finishTest = () => {
+    if (testFinished) return;
 
-  const answered = answers.filter(a => a !== undefined);
+    setTestFinished(true);
+    setShowLottieFinish(true);
 
-  const passed = wrongCount <= MAX_WRONG;
-  const score = answered.filter(a => a.isCorrect).length;
-  const totalQuestions = answered.length;
-  const totalTime = TOTAL_TIME - timeLeft;
-
-  try {
-    const res = await api.post(API_ROUTES.FULLTEST.SUBMIT, {
-      answers: answered,
-      score,
-      totalQuestions,
-      wrongAnswers: wrongCount,
-      timeTaken: totalTime,
-      improvements: []
-    });
-
-    const { aiInsights } = res.data || {};
+    const answered = answers.filter(a => a !== undefined);
+    const passed = wrongCount <= MAX_WRONG;
 
     setTimeout(() => {
       router.push({
@@ -165,23 +191,14 @@ const PracticeScreen = () => {
         params: {
           answers: JSON.stringify(answered),
           passed: passed ? "true" : "false",
-          aiInsights: aiInsights || ""
         }
       });
-    }, 2500);
-  } catch (err) {
-    console.error("Error sending test results:", err);
-    Alert.alert("שגיאה", "לא ניתן לשלוח את המבחן לשרת.");
-  }
-    };
+    }, 2400);
+  };
 
-
+  /* ------------------ EFFECTS ------------------ */
   useEffect(() => { fetchData(); }, []);
-
-  useEffect(() => {
-    if (data.length === 0 || testFinished) return;
-    generateQuestion(questionIndex);
-  }, [questionIndex, data, testFinished]);
+  useEffect(() => { if (data.length > 0) generateQuestion(questionIndex); }, [questionIndex, data]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -197,6 +214,7 @@ const PracticeScreen = () => {
     return () => clearInterval(interval);
   }, []);
 
+  /* ------------------ RENDER ------------------ */
   if (showLottieFinish) {
     return (
       <View style={styles.lottieContainer}>
@@ -232,13 +250,10 @@ const PracticeScreen = () => {
         <Image key={i} source={{ uri: src }} style={styles.image} />
       ))}
 
-      {currentQuestion.options.map((option, index) => (
+      {currentQuestion.options.map((option, idx) => (
         <TouchableOpacity
-          key={`${option}-${index}`}
-          style={[
-            styles.option,
-            selectedAnswer === option && { backgroundColor: "#d1e7ff" }
-          ]}
+          key={`${option}-${idx}`}
+          style={[styles.option, selectedAnswer === option && { backgroundColor: "#d1e7ff" }]}
           onPress={() => handleAnswer(option)}
         >
           <Text style={styles.optionText}>{option}</Text>
@@ -264,100 +279,28 @@ const PracticeScreen = () => {
   );
 };
 
+/* ------------------ STYLES ------------------ */
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#f0f4f8" },
 
-  lottieContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#333",
-  },
+  lottieContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" },
+  loadingText: { marginTop: 20, fontSize: 20, fontWeight: "600", color: "#333" },
 
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 15,
-    textAlign: "center",
-    color: "#1f2937",
-  },
-  questionNumber: {
-    fontSize: 16,
-    fontWeight: "500",
-    textAlign: "center",
-    color: "#4b5563",
-    marginBottom: 8,
-  },
-  timer: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "#ef4444",
-    fontWeight: "600",
-    marginBottom: 15,
-  },
-  question: {
-    fontSize: 20,
-    fontWeight: "500",
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#111827",
-  },
-  option: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 12,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginVertical: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  optionText: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "#1f2937",
-    fontWeight: "500",
-  },
-  message: {
-    textAlign: "center",
-    marginTop: 50,
-    fontSize: 16,
-    color: "#6b7280",
-  },
-  image: {
-    width: "100%",
-    height: 220,
-    resizeMode: "contain",
-    marginVertical: 15,
-    borderRadius: 12,
-    backgroundColor: "#e5e7eb",
-  },
-  navigationButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
-  },
-  navButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-  },
-  navButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  title: { fontSize: 24, fontWeight: "700", marginBottom: 15, textAlign: "center" },
+  questionNumber: { fontSize: 16, textAlign: "center", marginBottom: 8 },
+  timer: { fontSize: 16, textAlign: "center", color: "#e11d48", marginBottom: 15 },
+  question: { fontSize: 20, fontWeight: "500", marginBottom: 20, textAlign: "center" },
+
+  image: { width: "100%", height: 220, resizeMode: "contain", marginVertical: 15, borderRadius: 12, backgroundColor: "#e5e7eb" },
+
+  option: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#d1d5db", borderRadius: 12, paddingVertical: 15, paddingHorizontal: 20, marginVertical: 8 },
+  optionText: { fontSize: 16, textAlign: "center" },
+
+  navigationButtons: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
+  navButton: { backgroundColor: "#007AFF", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12 },
+  navButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+
+  message: { textAlign: "center", marginTop: 50, fontSize: 16 }
 });
 
 export default PracticeScreen;

@@ -36,61 +36,28 @@ const extractCategories = (html = "") => {
 };
 
 /* ---------------------------------------------------
-    🔵 /api/questions/all — כל השאלות מעורבבות
+   פונקציה לערבוב מערך (Fisher-Yates)
 --------------------------------------------------- */
-router.get("/all", async (req, res) => {
-  try {
-    const data = await loadCache();
-    const shuffled = [...data].sort(() => Math.random() - 0.5);
-    res.json(shuffled);
-  } catch (err) {
-    console.error("API ERROR:", err);
-    res.status(500).json({ message: "Failed to fetch questions" });
+const shuffleArray = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
-});
-
-/* ---------------------------------------------------
-    🟢 /api/questions/random — שאלה אקראית אחת
---------------------------------------------------- */
-router.get("/random", async (req, res) => {
-  try {
-    const data = await loadCache();
-
-    const randomIndex = Math.floor(Math.random() * data.length);
-    const record = data[randomIndex];
-
-    const html = record.description4 || "";
-    const liMatches = html.match(/<li><span.*?>(.*?)<\/span><\/li>/g) || [];
-    const options = liMatches.map((li) => {
-      const textMatch = li.match(/<span.*?>(.*?)<\/span>/);
-      return textMatch ? textMatch[1] : "";
-    });
-
-    const correctMatch = html.match(/<span id="correctAnswer.*?">(.*?)<\/span>/);
-    const correctAnswer = correctMatch ? correctMatch[1] : options[0];
-
-    res.json({
-      question: record.title2 || "שאלה ללא כותרת",
-      options,
-      correctAnswer,
-      questionId: record._id || randomIndex,
-    });
-  } catch (err) {
-    console.error("API ERROR:", err);
-    res.status(500).json({ message: "בעיה בטעינת שאלה אקראית" });
-  }
-});
+  return a;
+};
 
 /* ---------------------------------------------------
     🟣 /api/questions/by-license/:type
     מסנן שאלות לפי סוג רישיון («A» «B» «C1» «D» «1»)
 --------------------------------------------------- */
-router.get("/by-license/:type", async (req, res) => {
+router.get("/:type", async (req, res) => {
   const licenseType = req.params.type;
 
   try {
     const data = await loadCache();
 
+    // מסנן לפי סוג רישיון
     const filtered = data.filter((rec) => {
       const categories = extractCategories(rec.description4);
       return categories.includes(licenseType);
@@ -104,8 +71,11 @@ router.get("/by-license/:type", async (req, res) => {
         .json({ error: `לא נמצאו שאלות לסוג רישיון ${licenseType}` });
     }
 
+    // מערבב את השאלות לפני החזרה
+    const shuffled = shuffleArray(filtered);
+
     // מחזיר עד 30 שאלות — כמו מבחן אמיתי
-    res.json(filtered.slice(0, 30));
+    res.json(shuffled.slice(0, 30));
   } catch (err) {
     console.error("API ERROR:", err);
     res.status(500).json({ message: "שגיאה בשליפת שאלות לפי רישיון" });

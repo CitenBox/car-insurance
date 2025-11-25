@@ -27,6 +27,9 @@ app.use("/api/ai", require("./routes/ai"));
 // שאלות רגילות
 app.use("/api/questions", require("./routes/question"));
 
+// שאלות לפי סוג רישיון
+app.use("/api/questions/by-license", require("./routes/questionsByLicense"));
+
 // שאלה רנדומלית
 app.use("/api/questions/random", require("./routes/randomQuestion"));
 
@@ -34,7 +37,6 @@ app.use("/api/questions/random", require("./routes/randomQuestion"));
 app.use("/api/test", require("./routes/FullTest"));
 
 // היסטוריית מבחנים לכל משתמש
-// ⚡ ראוט ההיסטוריה החדש
 app.use("/api/test/history", require("./routes/history"));
 
 // נקודות משתמש

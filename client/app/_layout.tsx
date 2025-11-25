@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { AuthProvider, AuthContext } from '../src/context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import LottieWrapper from '../src/components/LottieWrapper';
@@ -69,7 +69,7 @@ function AppNavigator() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [minimumTimePassed, setMinimumTimePassed] = useState(false);
 
-  // זמן מינימלי — 1.5 שניות
+  // זמן מינימלי — 2.5 שניות
   useEffect(() => {
     const timer = setTimeout(() => {
       setMinimumTimePassed(true);
@@ -85,15 +85,13 @@ function AppNavigator() {
     }
   }, [user, loadingAuthState, minimumTimePassed]);
 
-  // טעינה (לוטי / אינדיקטור)
+  // טעינה (לוטי)
   if (!minimumTimePassed || loadingAuthState || !initialRoute) {
     return (
       <View style={styles.loadingContainer}>
         <LottieWrapper
           source={require('../assets/driving.json')}
-        //   source={require('../src/navigation/lottie/loading.json')}
-
-          style={{ width: 430, height: 430 }}
+          style={{ width: 250, height: 250 }}
         />
       </View>
     );

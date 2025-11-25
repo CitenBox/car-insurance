@@ -72,13 +72,7 @@ const TestHistoryScreen = () => {
 
       {/* פילטרים */}
       <View style={styles.filtersContainer}>
-        <Text style={styles.filterLabel}>User ID (לצפייה במבחנים של משתמש אחר):</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="הזן User ID או רוקן למשתמש הנוכחי"
-          value={userId}
-          onChangeText={setUserId}
-        />
+        
         <Text style={styles.filterLabel}>סטטוס:</Text>
         <View style={styles.filterButtons}>
           <Button title="כולם" onPress={() => setStatusFilter('all')} />
@@ -89,7 +83,7 @@ const TestHistoryScreen = () => {
         <Text style={styles.filterLabel}>תאריך (YYYY-MM-DD):</Text>
         <TextInput
           style={styles.input}
-          placeholder="2025-11-21"
+          placeholder="0000-00-00"
           value={dateFilter}
           onChangeText={setDateFilter}
         />
