@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 // כתובת ה-IP של המחשב שלכם ברשת המקומית
-const LOCAL_IP = "192.168.10.55";
+const LOCAL_IP = "172.20.18.219";
 
 // פונקציה לקביעת Base URL לפי פלטפורמה וסביבה
 const getBaseURL = () => {

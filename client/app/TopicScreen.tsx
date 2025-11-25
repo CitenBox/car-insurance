@@ -45,7 +45,7 @@ export default function TopicScreen() {
       setPractices(filtered);
     } catch (err) {
       console.error(err);
-      alert("לא ניתן לטעון את השאלות מהשרת");
+      alert("לא ניתן לטעון את השאלות עכשיו. אנא נסה שוב מאוחר יותר.");
     } finally {
       setLoading(false);
     }
