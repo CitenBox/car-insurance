@@ -1,7 +1,7 @@
 import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useContext } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AuthContext } from '../src/context/AuthContext';
 
 export default function HomePageScreen() {
@@ -43,7 +43,7 @@ export default function HomePageScreen() {
           {/* Full Test */}
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.push('/SelectTestTypeScreen')}  
+            onPress={() => router.push('/SelectTestTypeScreen')}
             activeOpacity={0.7}>
             <FontAwesome5 name="file-alt" size={50} color="#28a745" />
             <Text style={styles.buttonText}>מבחן מלא</Text>
@@ -57,6 +57,17 @@ export default function HomePageScreen() {
             <MaterialCommunityIcons name="history" size={50} color="#ff8800" />
             <Text style={styles.buttonText}>היסטוריית מבחנים</Text>
           </TouchableOpacity>
+
+          {/* Leaderboard */}
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.push('/LeaderboardScreen')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="leaderboard" size={50} color="#6f42c1" />
+            <Text style={styles.buttonText}>לוח דירוגים</Text>
+          </TouchableOpacity>
+
 
           {/* Learn from Mistakes */}
           <TouchableOpacity
@@ -83,7 +94,7 @@ export default function HomePageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: {  
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
