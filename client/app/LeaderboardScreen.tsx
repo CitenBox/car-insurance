@@ -1,4 +1,3 @@
-// client/app/LeaderboardScreen.tsx
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import api from "../src/api/api";
@@ -21,13 +20,13 @@ export default function LeaderboardScreen() {
         setLoading(true);
         setError(null);
 
-        console.log("📡 calling /api/points/leaderboard");
+        console.log(" calling /api/points/leaderboard");
         const res = await api.get("api/points/leaderboard");
-        console.log("✅ leaderboard data:", res.data);
+        console.log(" leaderboard data:", res.data);
 
         setUsers(res.data);
       } catch (e: any) {
-        console.log("❌ error loading leaderboard:", e?.response || e);
+        console.log(" error loading leaderboard:", e?.response || e);
         setError("שגיאה בטעינת לוח הדירוגים");
       } finally {
         setLoading(false);
@@ -56,7 +55,7 @@ export default function LeaderboardScreen() {
 
       {!loading && !error && users.length === 0 && (
         <View style={styles.center}>
-          <Text>אין עדיין נתוני דירוג 😴</Text>
+          <Text>אין עדיין נתוני דירוג</Text>
         </View>
       )}
 
