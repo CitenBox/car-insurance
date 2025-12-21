@@ -1,35 +1,10 @@
 import axios from "axios";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// כתובת ה-IP של המחשב שלכם ברשת המקומית
-const LOCAL_IP = "172.20.18.219";
-
-// פונקציה לקביעת Base URL לפי פלטפורמה וסביבה
-const getBaseURL = () => {
-  const isDevice =
-    Constants.executionEnvironment === "standalone" ||
-    Constants.executionEnvironment === "storeClient";
-
-  if (Platform.OS === "android" && !isDevice) {
-    // Android Emulator
-    return "http://10.0.2.2:3000";
-  }
-
-  if (Platform.OS === "ios" && !isDevice) {
-    // iOS Simulator
-    return "http://localhost:3000";
-  }
-
-  if (Platform.OS === "web") {
-    return "http://localhost:3000";
-  }
-
-  // Android/iOS physical device
-  return `http://${LOCAL_IP}:3000`;
-};
-
-const BASE_URL = getBaseURL();
+// Use the deployed server URL (Render) for all platforms
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://car-insurance-lvtc.onrender.com"; // override with env if needed
 
 // יצירת Axios instance
 const api = axios.create({
@@ -46,11 +21,29 @@ export const setAuthToken = (token: string | null) => {
   }
 };
 
+// Global interceptor to handle 401 (unauthorized) responses
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error?.response?.status === 401) {
+      try {
+        // Clear token from axios headers and local storage
+        setAuthToken(null);
+        await AsyncStorage.removeItem('token');
+      } catch (e) {
+        // ignore errors
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // מסלולים מובנים ל-backend
 export const API_ROUTES = {
   AUTH: "/api/auth",
   AI_ASK: "/api/ai/ask",
-  QUESTIONS: "/api/questions",
+  // NOTE: Render deployment does not expose root `/api/questions` so use `/api/questions/all`
+  QUESTIONS: "/api/questions/all",
   QUESTIONS_BY_LICENSE: (type: string) => `/api/questions/by-license/${type}`, // 🚀 חדש
   RANDOM_QUESTION: "/api/questions/random",
   FULLTEST: {

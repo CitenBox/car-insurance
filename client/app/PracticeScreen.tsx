@@ -100,19 +100,48 @@ const PracticeScreen = () => {
 
     setLoading(true);
     try {
-      const response = await api.get(API_ROUTES.QUESTIONS_BY_LICENSE(licenseType));
-      let records: Question[] = response.data || [];
+      // Primary strategy: fetch all questions once and filter locally to avoid 404s on the by-license endpoint
+      const allRes = await api.get<Question[]>(API_ROUTES.QUESTIONS);
+      const allRecords = allRes.data || [];
 
-      if (records.length === 0) {
-        Alert.alert("אין שאלות", `לא נמצאו שאלות לסוג רישיון ${licenseType}`);
+      const filtered = allRecords.filter((rec) => {
+        const categories = extractCategories(rec.description4);
+        return categories.includes(licenseType);
+      });
+
+      if (filtered.length === 0) {
+        // No license-specific questions — fall back to a general shuffled test
+        Alert.alert('אין שאלות ספציפיות', 'טוען מבחן כללי במקום שאלות ספציפיות לרישיון');
+        const general = shuffleArray(allRecords).slice(0, TOTAL_QUESTIONS);
+        setData(general);
+        setLoading(false);
+        return;
       }
 
-      // מערבב את השאלות לפני החזרה ומגביל ל־TOTAL_QUESTIONS
-      records = shuffleArray(records).slice(0, TOTAL_QUESTIONS);
-      setData(records);
-    } catch (err) {
-      console.error("API ERROR:", err);
-      Alert.alert("שגיאה", "לא ניתן לטעון את השאלות מהשרת");
+      setData(shuffleArray(filtered).slice(0, TOTAL_QUESTIONS));
+    } catch (err: any) {
+      // If the all-questions fetch fails, fall back to calling the by-license endpoint (older servers)
+      console.warn('Primary fetch failed, trying by-license fallback:', err?.response ?? err);
+      try {
+        const response = await api.get(API_ROUTES.QUESTIONS_BY_LICENSE(licenseType));
+        const records: Question[] = response.data || [];
+
+        if (records.length === 0) {
+          Alert.alert("אין שאלות", `לא נמצאו שאלות לסוג רישיון ${licenseType}`);
+          setLoading(false);
+          return;
+        }
+
+        setData(shuffleArray(records).slice(0, TOTAL_QUESTIONS));
+      } catch (err2: any) {
+        console.warn('Fallback by-license fetch failed:', err2?.response ?? err2);
+        // Handle 404 or network errors gracefully
+        if (err2?.response?.status === 404) {
+          Alert.alert('אין שאלות', err2.response.data?.error || `לא נמצאו שאלות לסוג רישיון ${licenseType}`);
+        } else {
+          Alert.alert('שגיאה', 'לא ניתן לטעון את השאלות מהשרת');
+        }
+      }
     } finally {
       setLoading(false);
     }

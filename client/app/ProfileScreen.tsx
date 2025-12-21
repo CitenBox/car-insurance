@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { AuthContext } from "../src/context/AuthContext";
 import api from "../src/api/api";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 
 export default function Profile() {
@@ -40,7 +41,9 @@ export default function Profile() {
         password,
       });
 
-      login(user!.token!, res.data);
+      // Keep existing token and update user in context
+      const token = await AsyncStorage.getItem('token');
+      await login(token || null, res.data);
 
       Alert.alert("הצלחה", "הפרופיל עודכן בהצלחה 🎉");
     } catch (err: any) {

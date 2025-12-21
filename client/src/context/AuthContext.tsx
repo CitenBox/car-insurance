@@ -12,7 +12,7 @@ export interface IUserWithPoints extends IUser {
 // הגדרת סוגי ההקשר כולל updatePoints ו-loadingAuthState
 interface AuthContextProps {
   user: IUserWithPoints | null;
-  login: (token: string, user: IUserWithPoints) => Promise<void>;
+  login: (token: string | null, user: IUserWithPoints) => Promise<void>;
   logout: () => Promise<void>;
   updatePoints?: (userPoints: number) => void;
   loadingAuthState: boolean; // מצב טעינה של המשתמש
@@ -65,16 +65,32 @@ useEffect(() => {
       if (userData) parsedUser = JSON.parse(userData);
 
       if (parsedUser) {
-        // מושך נקודות מהשרת
+        // If there is no token (e.g., Guest) don't call protected endpoints
+        if (!token || parsedUser._id === 'guest') {
+          setUser({ ...parsedUser, userPoints: parsedUser.userPoints || 0 });
+          return;
+        }
+
+        // מושך נקודות מהשרת רק אם יש token
         try {
           const response = await api.get(`${API_ROUTES.GET_USER_POINTS}/${parsedUser._id}`);
           const userPoints = response.data.userPoints;
           const updatedUser = { ...parsedUser, userPoints };
           setUser(updatedUser);
           await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
-        } catch (err) {
+        } catch (err: any) {
           console.error("Error fetching user points:", err);
-          setUser({ ...parsedUser, userPoints: parsedUser.userPoints || 0 });
+
+          // If unauthorized, clear auth and prompt re-login
+          if (err?.response?.status === 401) {
+            console.warn('Token invalid or expired. Clearing saved credentials.');
+            setAuthToken(null);
+            await AsyncStorage.removeItem('token');
+            await AsyncStorage.removeItem('user');
+            setUser(null);
+          } else {
+            setUser({ ...parsedUser, userPoints: parsedUser.userPoints || 0 });
+          }
         }
       }
     } catch (error) {
@@ -88,13 +104,31 @@ useEffect(() => {
 }, []);
 
   // פונקציה לטיפול בלוגין
-  const login = async (token: string, userData: IUserWithPoints) => {
-    // מיפוי userPoints ל-points
-    const updatedUser = { ...userData, userPoints: userData.userPoints || 0 };
-    setUser(updatedUser);
-    setAuthToken(token);
+  const login = async (token: string | null, userData: IUserWithPoints) => {
+    // set or remove auth token
+    if (token) {
+      setAuthToken(token);
+      await AsyncStorage.setItem('token', token);
+    } else {
+      setAuthToken(null);
+      await AsyncStorage.removeItem('token');
+    }
 
-    await AsyncStorage.setItem('token', token);
+    // Prefer points returned from login response to avoid an extra protected request
+    // Fall back to fetching points only if they are missing
+    let updatedUser = { ...userData, userPoints: userData.userPoints ?? 0 };
+
+    if (token && (userData.userPoints === undefined || userData.userPoints === null)) {
+      try {
+        const res = await api.get(`${API_ROUTES.GET_USER_POINTS}/${updatedUser._id}`);
+        updatedUser = { ...updatedUser, userPoints: res.data.userPoints };
+      } catch (err) {
+        console.error('Error fetching user points on login (non-fatal):', err);
+        // don't clear token here — keep the login state intact
+      }
+    }
+
+    setUser(updatedUser);
     await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
   };
 

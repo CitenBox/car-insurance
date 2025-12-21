@@ -7,7 +7,8 @@ import { useRouter } from 'expo-router';
 
 // useEffect - hook שרץ כשהקומפוננטה נטענת לראשונה
 // useState - hook לניהול state (מצב) של הקומפוננטה
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
+import { AuthContext } from '../src/context/AuthContext';
 
 // רכיבי UI מ-React Native:
 // ActivityIndicator - אייקון טעינה מסתובב
@@ -56,6 +57,7 @@ const LearnFromMistakesScreen = () => {
   // --- ניווט (Navigation) ---
   // router מאפשר לנווט למסכים אחרים באפליקציה
   const router = useRouter();
+  const { user } = useContext(AuthContext);
 
   // --- State Management (ניהול מצב) ---
   // loading - האם הנתונים עדיין נטענים מהשרת (true/false)
@@ -80,13 +82,16 @@ const LearnFromMistakesScreen = () => {
     // בדיקה: אם כבר יש משוב - אל תקרא שוב (חוסכים כסף ב-API)
     if (answer.aiFeedback) return;
 
+    // אם אין משתמש מחובר או שהוא Guest - לא ניתן לקבל משוב
+    if (!user || user._id === 'guest') {
+      Alert.alert('דרוש התחברות', 'אנא היכנס כדי לקבל משוב מותאם מה‑AI');
+      return;
+    }
+
     // עדכון State: מסמן שהמשוב לשאלה הזו כרגע נטען
-    // prev - הערך הקודם של loadingFeedback
-    // ...prev - שומר את כל הערכים הקודמים
-    // [index]: true - מעדכן רק את השאלה הנוכחית לטעינה
     setLoadingFeedback(prev => ({ ...prev, [index]: true }));
-        //+= הפלוס אומר להוסיף או לעדכן את הערך של המפתח [index] לאובייקט ווהוא בbacktick 
-    try {`+`
+
+    try {
       // שליחת בקשה לשרת (POST request) ל-endpoint של משוב AI
       const res = await api.post('/api/learn/feedback', {
         question: answer.questionText,      // שולח את השאלה
@@ -97,19 +102,17 @@ const LearnFromMistakesScreen = () => {
       // עדכון State: הוספת המשוב שהתקבל מה-AI לשאלה המתאימה
       setWrongAnswersOnly(prev =>
         prev.map((item, i) =>
-          // אם זה השאלה שאנחנו מעדכנים (index שווה ל-i)
-          i === index 
-            ? { ...item, aiFeedback: res.data.feedback } // הוסף את המשוב
-            : item // אחרת, השאר אותה ללא שינוי
+          i === index ? { ...item, aiFeedback: res.data.feedback } : item
         )
       );
-    } catch (err) {
-      // טיפול בשגיאות: אם הבקשה נכשלה
+    } catch (err: any) {
       console.error('Error fetching AI feedback:', err);
-      Alert.alert('שגיאה', 'לא ניתן לקבל משוב מה-AI');
+      if (err?.response?.status === 401) {
+        Alert.alert('אינך מורשה', 'התחבר מחדש כדי לקבל משוב מה‑AI');
+      } else {
+        Alert.alert('שגיאה', 'לא ניתן לקבל משוב מה-AI');
+      }
     } finally {
-      // finally - רץ תמיד, גם אם הצליח וגם אם נכשל
-      // עדכון State: מסיר את הסימון של טעינה מהשאלה הזו
       setLoadingFeedback(prev => ({ ...prev, [index]: false }));
     }
   };
@@ -123,6 +126,13 @@ const LearnFromMistakesScreen = () => {
     setLoading(true);
 
     try {
+      // Ensure user is authenticated
+      if (!user || user._id === 'guest') {
+        Alert.alert('דרוש התחברות', 'התחבר או צור חשבון כדי להשתמש בכלי זה');
+        setLoading(false);
+        return;
+      }
+
       // GET request - מושך את כל היסטוריית המבחנים של המשתמש
       // API_ROUTES.FULLTEST.HISTORY = "/api/test/history"
       const res = await api.get<TestHistoryItem[]>(API_ROUTES.FULLTEST.HISTORY);

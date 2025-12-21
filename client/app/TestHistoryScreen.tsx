@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, Modal, ScrollView, TextInput, Button, Alert } from 'react-native';
 import api, { API_ROUTES } from '../src/api/api';
+import { AuthContext } from '../src/context/AuthContext';
+import { useRouter } from 'expo-router';
 
 type AnswerForDB = {
   questionid: number;
@@ -22,6 +24,9 @@ type TestHistoryItem = {
 };
 
 const TestHistoryScreen = () => {
+  const router = useRouter();
+  const { user, loadingAuthState } = useContext(AuthContext);
+
   const [history, setHistory] = useState<TestHistoryItem[]>([]);
   const [filteredHistory, setFilteredHistory] = useState<TestHistoryItem[]>([]);
   const [selectedTest, setSelectedTest] = useState<TestHistoryItem | null>(null);
@@ -32,14 +37,26 @@ const TestHistoryScreen = () => {
 
   const fetchHistory = async () => {
     try {
+      // Ensure user is authenticated (server requires JWT)
+      if (!user || user._id === 'guest') {
+        Alert.alert('דרוש התחברות', 'התחבר או צור חשבון כדי לצפות בהיסטוריית מבחנים');
+        return;
+      }
+
       const query = userId ? `?userId=${userId}` : '';
       const res = await api.get<TestHistoryItem[]>(`${API_ROUTES.FULLTEST.HISTORY}${query}`);
       const sorted = res.data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHistory(sorted);
       setFilteredHistory(sorted);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching history:', err);
-      Alert.alert("שגיאה", "לא ניתן לטעון את ההיסטוריה מהשרת");
+      if (err?.response?.status === 401) {
+        Alert.alert('אינך מורשה', 'הגישה נדחית - אנא התחבר מחדש', [
+          { text: 'OK', onPress: () => router.replace('/LoginScreen') },
+        ]);
+      } else {
+        Alert.alert('שגיאה', 'לא ניתן לטעון את ההיסטוריה מהשרת');
+      }
     }
   };
 
